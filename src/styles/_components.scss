@@ -777,6 +777,24 @@
   margin-top: 16px;
 }
 
+.signal-history-overview-panel {
+  margin-top: 18px;
+}
+
+.signal-history-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.signal-history-overview-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
 .signal-priority-grid {
   margin-top: 18px;
 }
@@ -1005,7 +1023,8 @@
 @media (max-width: 960px) {
   .signal-priority-summary,
   .signal-check-grid,
-  .signal-execution-summary {
+  .signal-execution-summary,
+  .signal-history-overview-grid {
     grid-template-columns: 1fr;
   }
 

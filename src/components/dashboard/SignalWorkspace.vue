@@ -13,6 +13,7 @@ const props = defineProps({
   signalReviewDraft: { type: String, default: "" },
   signalExecutionItemsDraft: { type: Array, default: () => [] },
   signalExecutionSummary: { type: Object, default: () => ({}) },
+  signalHistoryStats: { type: Object, default: () => ({}) },
   signalMessage: { type: String, default: "" },
 });
 
@@ -257,6 +258,57 @@ function isHistoryExpanded(modelRunId) {
         {{ warning }}
       </div>
     </div>
+
+    <section class="panel compact-panel signal-history-overview-panel">
+      <div class="table-header">
+        <div>
+          <div class="section-title">最近信号执行复盘</div>
+          <div class="helper-text">从最近一批信号里，看你采纳了多少、执行了多少钱，以及执行后的整体跟随效果。</div>
+        </div>
+      </div>
+
+      <div class="signal-history-overview-grid">
+        <article class="factor-card">
+          <span>总信号数</span>
+          <strong>{{ signalHistoryStats.totalSignals || 0 }}</strong>
+        </article>
+        <article class="factor-card">
+          <span>已执行 / 采纳率</span>
+          <strong>{{ signalHistoryStats.executedSignals || 0 }} / {{ ((signalHistoryStats.adoptionRate || 0) * 100).toFixed(1) }}%</strong>
+        </article>
+        <article class="factor-card">
+          <span>已忽略 / 待执行</span>
+          <strong>{{ signalHistoryStats.ignoredSignals || 0 }} / {{ signalHistoryStats.pendingSignals || 0 }}</strong>
+        </article>
+        <article class="factor-card">
+          <span>执行信号平均预期</span>
+          <strong>{{ ((signalHistoryStats.avgExpectedReturnExecuted || 0) * 100).toFixed(2) }}%</strong>
+        </article>
+        <article class="factor-card">
+          <span>累计实际买入</span>
+          <strong>{{ (signalHistoryStats.executedBuyAmount || 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 }) }}</strong>
+        </article>
+        <article class="factor-card">
+          <span>累计实际卖出</span>
+          <strong>{{ (signalHistoryStats.executedSellAmount || 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 }) }}</strong>
+        </article>
+      </div>
+
+      <div class="signal-history-overview-summary">
+        <div class="summary-chip">
+          <span>已形成价格跟踪的信号</span>
+          <strong>{{ signalHistoryStats.trackedSignals || 0 }}</strong>
+        </div>
+        <div class="summary-chip">
+          <span>覆盖成交金额</span>
+          <strong>{{ (signalHistoryStats.totalTrackedNotional || 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 }) }}</strong>
+        </div>
+        <div class="summary-chip">
+          <span>执行后整体跟随效果</span>
+          <strong>{{ ((signalHistoryStats.weightedFollowThrough || 0) * 100).toFixed(2) }}%</strong>
+        </div>
+      </div>
+    </section>
 
     <div class="detail-grid balanced-grid-two">
       <section class="panel compact-panel equal-card equal-card-large">

@@ -16,6 +16,49 @@ export function useSignalState(errorRef) {
   const signalActionItems = computed(() => signalCenter.value?.action_items ?? []);
   const signalTargetPositions = computed(() => signalCenter.value?.target_positions ?? []);
   const signalTopCandidates = computed(() => signalCenter.value?.top_candidates ?? []);
+  const signalHistoryStats = computed(() => {
+    const rows = signalHistory.value || [];
+    const executedRows = rows.filter((item) => item.review_status === "executed");
+    const ignoredRows = rows.filter((item) => item.review_status === "ignored");
+    const pendingRows = rows.filter((item) => item.review_status === "pending");
+    const trackedRows = executedRows.filter((item) => Number(item.review_performance?.priced_items_count || 0) > 0);
+    const totalTrackedNotional = trackedRows.reduce(
+      (sum, item) => sum + Number(item.review_performance?.tracked_notional || 0),
+      0,
+    );
+    const weightedFollowThrough =
+      totalTrackedNotional > 0
+        ? trackedRows.reduce(
+            (sum, item) =>
+              sum +
+              Number(item.review_performance?.weighted_post_trade_move || 0) *
+                Number(item.review_performance?.tracked_notional || 0),
+            0,
+          ) / totalTrackedNotional
+        : 0;
+
+    return {
+      totalSignals: rows.length,
+      executedSignals: executedRows.length,
+      ignoredSignals: ignoredRows.length,
+      pendingSignals: pendingRows.length,
+      adoptionRate: rows.length ? executedRows.length / rows.length : 0,
+      avgExpectedReturnExecuted: executedRows.length
+        ? executedRows.reduce((sum, item) => sum + Number(item.avg_predicted_return_5d || 0), 0) / executedRows.length
+        : 0,
+      trackedSignals: trackedRows.length,
+      totalTrackedNotional,
+      weightedFollowThrough,
+      executedBuyAmount: executedRows.reduce(
+        (sum, item) => sum + Number(item.execution_summary?.executed_buy_amount || 0),
+        0,
+      ),
+      executedSellAmount: executedRows.reduce(
+        (sum, item) => sum + Number(item.execution_summary?.executed_sell_amount || 0),
+        0,
+      ),
+    };
+  });
   const signalExecutionSummary = computed(() => {
     const items = signalExecutionItemsDraft.value;
     return {
@@ -152,6 +195,7 @@ export function useSignalState(errorRef) {
     signalReviewDraft,
     signalExecutionItemsDraft,
     signalExecutionSummary,
+    signalHistoryStats,
     signalMessage,
     latestSignalSummary,
     latestSignalReview,
