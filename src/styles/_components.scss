@@ -905,6 +905,55 @@
   gap: 8px;
 }
 
+.signal-history-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.signal-history-review {
+  padding-top: 2px;
+}
+
+.signal-history-detail {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(32, 43, 35, 0.08);
+}
+
+.signal-history-detail-head,
+.signal-history-detail-row {
+  display: grid;
+  grid-template-columns: 1.3fr 0.9fr 0.8fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.signal-history-detail-head {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.signal-history-detail-row {
+  padding: 10px 0;
+  border-top: 1px dashed rgba(32, 43, 35, 0.08);
+}
+
+.signal-history-detail-row:first-of-type {
+  border-top: none;
+}
+
+.positive-text {
+  color: var(--green-700);
+}
+
+.negative-text {
+  color: var(--orange-700);
+}
+
 .signal-group-list {
   gap: 18px;
 }
@@ -961,6 +1010,11 @@
   }
 
   .signal-execution-row {
+    grid-template-columns: 1fr;
+  }
+
+  .signal-history-detail-head,
+  .signal-history-detail-row {
     grid-template-columns: 1fr;
   }
 }

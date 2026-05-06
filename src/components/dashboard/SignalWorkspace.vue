@@ -18,6 +18,7 @@ const props = defineProps({
 
 const emit = defineEmits(["refresh", "save-review", "update:signalReviewDraft", "update:signalExecutionItem"]);
 const copyMessage = ref("");
+const expandedHistoryIds = ref([]);
 
 const reviewLabel = computed(() => {
   const value = props.signalReview?.status || "pending";
@@ -112,6 +113,18 @@ function reviewBadgeClass(status) {
     return "negative-fill";
   }
   return "neutral-fill";
+}
+
+function toggleHistoryDetails(modelRunId) {
+  if (expandedHistoryIds.value.includes(modelRunId)) {
+    expandedHistoryIds.value = expandedHistoryIds.value.filter((item) => item !== modelRunId);
+    return;
+  }
+  expandedHistoryIds.value = [...expandedHistoryIds.value, modelRunId];
+}
+
+function isHistoryExpanded(modelRunId) {
+  return expandedHistoryIds.value.includes(modelRunId);
 }
 </script>
 
@@ -491,13 +504,90 @@ function reviewBadgeClass(status) {
             <div v-for="row in signalHistory" :key="`history-${row.model_run_id}`" class="history-row model-run-row signal-history-row">
               <div class="signal-history-top">
                 <strong>{{ row.generated_at }}</strong>
-                <span class="detail-badge" :class="reviewBadgeClass(row.review_status)">
-                  {{ row.review_status === "executed" ? "已执行" : row.review_status === "ignored" ? "已忽略" : "待执行" }}
-                </span>
+                <div class="history-actions">
+                  <span class="detail-badge" :class="reviewBadgeClass(row.review_status)">
+                    {{ row.review_status === "executed" ? "已执行" : row.review_status === "ignored" ? "已忽略" : "待执行" }}
+                  </span>
+                  <button
+                    v-if="row.execution_items?.length"
+                    class="secondary-button compact-action-button"
+                    type="button"
+                    @click="toggleHistoryDetails(row.model_run_id)"
+                  >
+                    {{ isHistoryExpanded(row.model_run_id) ? "收起明细" : "查看明细" }}
+                  </button>
+                </div>
               </div>
               <div>{{ row.model_name }} · {{ row.top_symbols.join(" / ") }}</div>
               <div class="helper-text">
                 平均预期 {{ (row.avg_predicted_return_5d * 100).toFixed(2) }}% · 最强 {{ (row.best_predicted_return_5d * 100).toFixed(2) }}%
+              </div>
+              <div v-if="row.execution_summary?.items_count || row.review_performance?.executed_items_count" class="signal-history-summary">
+                <span class="summary-chip">
+                  <span>执行进度</span>
+                  <strong>{{ row.execution_summary?.executed_items_count || 0 }} / {{ row.execution_summary?.items_count || 0 }}</strong>
+                </span>
+                <span class="summary-chip">
+                  <span>实际买入</span>
+                  <strong>{{ (row.execution_summary?.executed_buy_amount || 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 }) }}</strong>
+                </span>
+                <span class="summary-chip">
+                  <span>实际卖出</span>
+                  <strong>{{ (row.execution_summary?.executed_sell_amount || 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 }) }}</strong>
+                </span>
+              </div>
+              <div
+                v-if="row.review_performance?.priced_items_count"
+                class="helper-text signal-history-review"
+              >
+                已跟踪 {{ row.review_performance.priced_items_count }} 笔成交，按动作方向折算后的后续表现
+                {{ (row.review_performance.weighted_post_trade_move * 100).toFixed(2) }}%，
+                覆盖金额 {{ (row.review_performance.tracked_notional || 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 }) }}
+              </div>
+              <div
+                v-else-if="row.review_status === 'executed' && row.review_performance?.executed_items_count"
+                class="helper-text signal-history-review"
+              >
+                已记录真实成交，后续价格跟踪数据还在等待更新。
+              </div>
+              <div v-if="isHistoryExpanded(row.model_run_id) && row.execution_items?.length" class="signal-history-detail">
+                <div class="signal-history-detail-head">
+                  <span>股票 / 动作</span>
+                  <span>成交</span>
+                  <span>最新价</span>
+                  <span>后续表现</span>
+                </div>
+                <div
+                  v-for="item in row.execution_items"
+                  :key="`history-item-${row.model_run_id}-${item.symbol}-${item.action}`"
+                  class="signal-history-detail-row"
+                >
+                  <div>
+                    <strong>{{ item.symbol }} {{ item.name }}</strong>
+                    <div class="helper-text">
+                      <span class="detail-badge" :class="actionBadgeClass(item.action)">{{ item.action }}</span>
+                      计划 {{ item.planned_quantity }} 股
+                    </div>
+                  </div>
+                  <div>
+                    <strong>{{ item.executed_quantity }} 股</strong>
+                    <div class="helper-text">成交价 {{ Number(item.executed_price || 0).toFixed(2) }}</div>
+                  </div>
+                  <div>
+                    <strong>{{ item.tracked ? Number(item.latest_price || 0).toFixed(2) : "-" }}</strong>
+                    <div class="helper-text">
+                      {{ item.tracked ? `跟踪金额 ${Number(item.latest_value || 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 })}` : "等待最新价" }}
+                    </div>
+                  </div>
+                  <div>
+                    <strong :class="item.signed_return >= 0 ? 'positive-text' : 'negative-text'">
+                      {{ item.tracked ? `${(Number(item.signed_return || 0) * 100).toFixed(2)}%` : "-" }}
+                    </strong>
+                    <div class="helper-text">
+                      {{ item.tracked ? `方向收益 ${Number(item.signed_pnl || 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 })}` : (item.note || "未形成可复盘价格") }}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
