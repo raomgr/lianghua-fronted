@@ -23,7 +23,7 @@ const navItems = [
       <div>
         <p class="eyebrow">A-Share Quant Dashboard</p>
         <!--<h1 class="app-title">A 股量化研究台</h1>-->
-        <h1 class="app-title">A 股量化工作台</h1>
+        <h1 class="app-title">工作台</h1>
       </div>
       <nav class="app-nav">
         <RouterLink
