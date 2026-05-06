@@ -33,10 +33,13 @@ onBeforeUnmount(() => {
       :signal-loading="dashboard.signalLoading"
       :signal-reviewing="dashboard.signalReviewing"
       :signal-review-draft="dashboard.signalReviewDraft"
+      :signal-execution-items-draft="dashboard.signalExecutionItemsDraft"
+      :signal-execution-summary="dashboard.signalExecutionSummary"
       :signal-message="dashboard.signalMessage"
       @refresh="dashboard.loadSignalWorkspace"
       @save-review="dashboard.handleSaveSignalReview"
       @update:signal-review-draft="dashboard.setSignalReviewDraft"
+      @update:signalExecutionItem="dashboard.updateSignalExecutionItem"
     />
   </template>
 </template>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 
 const props = defineProps({
   signalSummary: { type: Object, default: null },
@@ -11,10 +11,13 @@ const props = defineProps({
   signalLoading: { type: Boolean, default: false },
   signalReviewing: { type: Boolean, default: false },
   signalReviewDraft: { type: String, default: "" },
+  signalExecutionItemsDraft: { type: Array, default: () => [] },
+  signalExecutionSummary: { type: Object, default: () => ({}) },
   signalMessage: { type: String, default: "" },
 });
 
-const emit = defineEmits(["refresh", "save-review", "update:signalReviewDraft"]);
+const emit = defineEmits(["refresh", "save-review", "update:signalReviewDraft", "update:signalExecutionItem"]);
+const copyMessage = ref("");
 
 const reviewLabel = computed(() => {
   const value = props.signalReview?.status || "pending";
@@ -26,6 +29,70 @@ const reviewLabel = computed(() => {
   }
   return "待执行";
 });
+
+const actionableItems = computed(() =>
+  props.signalActionItems.filter((item) => item.action !== "持有"),
+);
+
+const sellSideItems = computed(() =>
+  actionableItems.value.filter((item) => item.action === "卖出" || item.action === "减仓"),
+);
+
+const buySideItems = computed(() =>
+  actionableItems.value.filter((item) => item.action === "买入" || item.action === "加仓"),
+);
+
+const holdItems = computed(() =>
+  props.signalActionItems.filter((item) => item.action === "持有"),
+);
+
+const operationChecklist = computed(() => {
+  const lines = [];
+  if (sellSideItems.value.length) {
+    lines.push("先处理卖出/减仓：");
+    sellSideItems.value.forEach((row, index) => {
+      lines.push(
+        `${index + 1}. ${row.action} ${row.symbol} ${row.name}，当前 ${row.current_quantity} 股，目标 ${row.target_quantity} 股，预期 ${(row.predicted_return_5d * 100).toFixed(2)}%`,
+      );
+    });
+  }
+  if (buySideItems.value.length) {
+    if (lines.length) {
+      lines.push("");
+    }
+    lines.push("再处理买入/加仓：");
+    buySideItems.value.forEach((row, index) => {
+      lines.push(
+        `${index + 1}. ${row.action} ${row.symbol} ${row.name}，当前 ${row.current_quantity} 股，目标 ${row.target_quantity} 股，预期 ${(row.predicted_return_5d * 100).toFixed(2)}%`,
+      );
+    });
+  }
+  if (!lines.length) {
+    lines.push("当前没有需要执行的买卖动作，可继续观察。");
+  }
+  return lines.join("\n");
+});
+
+const topWarning = computed(() => props.signalSummary?.warnings?.[0] || "");
+
+async function copyChecklist() {
+  copyMessage.value = "";
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(operationChecklist.value);
+    } else {
+      const textArea = document.createElement("textarea");
+      textArea.value = operationChecklist.value;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+    }
+    copyMessage.value = "已复制操作清单，可直接对照券商 APP 下单。";
+  } catch (error) {
+    copyMessage.value = "复制失败，请手动复制页面中的操作清单。";
+  }
+}
 
 function actionBadgeClass(action) {
   if (action === "买入" || action === "加仓") {
@@ -68,6 +135,7 @@ function reviewBadgeClass(status) {
     </div>
 
     <div v-if="signalMessage" class="update-message signal-message">{{ signalMessage }}</div>
+    <div v-if="copyMessage" class="update-message signal-message">{{ copyMessage }}</div>
 
     <div v-if="signalSummary" class="metric-grid signal-metric-grid">
       <article class="metric-card">
@@ -92,6 +160,85 @@ function reviewBadgeClass(status) {
       </article>
     </div>
 
+    <div v-if="signalSummary" class="detail-grid balanced-grid-two signal-priority-grid">
+      <section class="panel compact-panel equal-card signal-priority-card">
+        <div class="table-header signal-priority-header">
+          <div>
+            <div class="section-title">今日先做什么</div>
+            <div class="helper-text">按“先卖后买”的顺序执行，避免资金占用和仓位错配。</div>
+          </div>
+          <div class="history-actions">
+            <div class="status-pill">{{ actionableItems.length }} 笔待处理</div>
+            <button class="secondary-button" type="button" @click="copyChecklist">
+              复制下单清单
+            </button>
+          </div>
+        </div>
+
+        <div class="signal-priority-summary">
+          <div class="summary-chip">
+            <span>卖出 / 减仓</span>
+            <strong>{{ sellSideItems.length }} 笔</strong>
+          </div>
+          <div class="summary-chip">
+            <span>买入 / 加仓</span>
+            <strong>{{ buySideItems.length }} 笔</strong>
+          </div>
+          <div class="summary-chip">
+            <span>继续持有</span>
+            <strong>{{ holdItems.length }} 只</strong>
+          </div>
+          <div class="summary-chip">
+            <span>预计卖出金额</span>
+            <strong>{{ sellSideItems.reduce((sum, item) => sum + Math.abs(item.delta_quantity || 0) * (item.last_price || 0), 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 }) }}</strong>
+          </div>
+          <div class="summary-chip">
+            <span>预计买入金额</span>
+            <strong>{{ buySideItems.reduce((sum, item) => sum + Math.max(item.delta_quantity || 0, 0) * (item.last_price || 0), 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 }) }}</strong>
+          </div>
+        </div>
+
+        <div class="signal-checklist">
+          <pre class="signal-checklist-text">{{ operationChecklist }}</pre>
+        </div>
+      </section>
+
+      <section class="panel compact-panel equal-card signal-priority-card">
+        <div class="table-header">
+          <div>
+            <div class="section-title">执行前确认</div>
+            <div class="helper-text">先确认信号时间、现金、状态，再去券商端操作。</div>
+          </div>
+          <div class="status-pill" :class="reviewBadgeClass(signalReview?.status)">
+            {{ reviewLabel }}
+          </div>
+        </div>
+
+        <div class="signal-check-grid">
+          <div class="factor-card">
+            <span>信号交易日</span>
+            <strong>{{ signalSummary.signal_trade_date || "-" }}</strong>
+          </div>
+          <div class="factor-card">
+            <span>账户现金</span>
+            <strong>{{ (signalSummary.account_cash || 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 }) }}</strong>
+          </div>
+          <div class="factor-card">
+            <span>目标仓位数</span>
+            <strong>{{ signalSummary.target_position_count }}</strong>
+          </div>
+          <div class="factor-card">
+            <span>模型状态</span>
+            <strong>{{ signalSummary.model_name || "-" }}</strong>
+          </div>
+        </div>
+
+        <div v-if="topWarning" class="status-note signal-priority-note">
+          {{ topWarning }}
+        </div>
+      </section>
+    </div>
+
     <div v-if="signalSummary?.warnings?.length" class="signal-warning-list">
       <div v-for="(warning, index) in signalSummary.warnings" :key="`warning-${index}`" class="status-note">
         {{ warning }}
@@ -105,7 +252,61 @@ function reviewBadgeClass(status) {
           <div class="helper-text">按优先顺序给你列出买入、卖出、加减仓建议。</div>
         </div>
         <div class="card-scroll">
-          <div v-if="signalActionItems.length" class="history-list">
+          <div v-if="actionableItems.length" class="history-list signal-group-list">
+            <div class="signal-group">
+              <div class="signal-group-header">
+                <strong>先处理卖出 / 减仓</strong>
+                <span>{{ sellSideItems.length }} 笔</span>
+              </div>
+              <div v-if="sellSideItems.length" class="history-list">
+                <div v-for="row in sellSideItems" :key="`sell-${row.symbol}-${row.action}`" class="history-row model-run-row signal-action-row">
+                  <div class="signal-action-main">
+                    <div class="signal-action-top">
+                      <strong>{{ row.symbol }}</strong>
+                      <span>{{ row.name }}</span>
+                    </div>
+                    <div class="signal-action-meta">
+                      <span class="detail-badge" :class="actionBadgeClass(row.action)">{{ row.action }}</span>
+                      <span>当前 {{ row.current_quantity }} 股</span>
+                      <span>目标 {{ row.target_quantity }} 股</span>
+                      <span>减少 {{ Math.abs(row.delta_quantity) }} 股</span>
+                      <span>现仓 {{ ((row.current_weight || 0) * 100).toFixed(1) }}%</span>
+                    </div>
+                    <div class="helper-text">{{ row.note }}</div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="compact-empty compact-empty-inline">当前没有卖出或减仓动作。</div>
+            </div>
+
+            <div class="signal-group">
+              <div class="signal-group-header">
+                <strong>再处理买入 / 加仓</strong>
+                <span>{{ buySideItems.length }} 笔</span>
+              </div>
+              <div v-if="buySideItems.length" class="history-list">
+                <div v-for="row in buySideItems" :key="`buy-${row.symbol}-${row.action}`" class="history-row model-run-row signal-action-row">
+                  <div class="signal-action-main">
+                    <div class="signal-action-top">
+                      <strong>{{ row.symbol }}</strong>
+                      <span>{{ row.name }}</span>
+                    </div>
+                    <div class="signal-action-meta">
+                      <span class="detail-badge" :class="actionBadgeClass(row.action)">{{ row.action }}</span>
+                      <span>目标 {{ row.target_quantity }} 股</span>
+                      <span>当前 {{ row.current_quantity }} 股</span>
+                      <span>增加 {{ Math.max(row.delta_quantity, 0) }} 股</span>
+                      <span>排名 #{{ row.rank }}</span>
+                      <span>预期 {{ (row.predicted_return_5d * 100).toFixed(2) }}%</span>
+                    </div>
+                    <div class="helper-text">{{ row.note }}</div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="compact-empty compact-empty-inline">当前没有买入或加仓动作。</div>
+            </div>
+          </div>
+          <div v-else-if="signalActionItems.length" class="history-list">
             <div v-for="row in signalActionItems" :key="`action-${row.symbol}-${row.action}`" class="history-row model-run-row signal-action-row">
               <div class="signal-action-main">
                 <div class="signal-action-top">
@@ -150,6 +351,75 @@ function reviewBadgeClass(status) {
             <span>资金使用比例</span>
             <strong>{{ ((signalSummary?.capital_fraction || 0) * 100).toFixed(1) }}%</strong>
           </div>
+        </div>
+
+        <div class="table-header signal-sub-header">
+          <div class="section-title">真实成交回写</div>
+          <div class="helper-text">下单完成后，把实际成交数量、成交价记进来，方便复盘。</div>
+        </div>
+
+        <div class="signal-execution-summary">
+          <div class="summary-chip">
+            <span>已回写笔数</span>
+            <strong>{{ signalExecutionSummary.executedItemsCount || 0 }} / {{ signalExecutionSummary.itemsCount || 0 }}</strong>
+          </div>
+          <div class="summary-chip">
+            <span>实际买入金额</span>
+            <strong>{{ (signalExecutionSummary.executedBuyAmount || 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 }) }}</strong>
+          </div>
+          <div class="summary-chip">
+            <span>实际卖出金额</span>
+            <strong>{{ (signalExecutionSummary.executedSellAmount || 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 }) }}</strong>
+          </div>
+        </div>
+
+        <div class="card-scroll signal-execution-scroll">
+          <div v-if="signalExecutionItemsDraft.length" class="signal-execution-table">
+            <div class="signal-execution-row signal-execution-head">
+              <span>股票</span>
+              <span>动作</span>
+              <span>计划股数</span>
+              <span>实际股数</span>
+              <span>成交价</span>
+              <span>备注</span>
+            </div>
+            <div v-for="(row, index) in signalExecutionItemsDraft" :key="`exec-${row.symbol}-${row.action}`" class="signal-execution-row">
+              <strong>{{ row.symbol }} {{ row.name }}</strong>
+              <span>
+                <span class="detail-badge" :class="actionBadgeClass(row.action)">{{ row.action }}</span>
+              </span>
+              <span>{{ row.planned_quantity }}</span>
+              <label>
+                <input
+                  class="signal-inline-input"
+                  type="number"
+                  min="0"
+                  :value="row.executed_quantity"
+                  @input="emit('update:signalExecutionItem', index, 'executed_quantity', $event.target.value)"
+                />
+              </label>
+              <label>
+                <input
+                  class="signal-inline-input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  :value="row.executed_price"
+                  @input="emit('update:signalExecutionItem', index, 'executed_price', $event.target.value)"
+                />
+              </label>
+              <label>
+                <input
+                  class="signal-inline-input"
+                  type="text"
+                  :value="row.note"
+                  placeholder="比如：分两笔成交"
+                  @input="emit('update:signalExecutionItem', index, 'note', $event.target.value)"
+                />
+              </label>
+            </div>
+          </div>
+          <div v-else class="compact-empty">当前没有需要回写的执行动作。</div>
         </div>
 
         <label class="signal-review-box">
