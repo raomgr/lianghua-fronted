@@ -16,6 +16,49 @@ export function useSignalState(errorRef) {
   const signalActionItems = computed(() => signalCenter.value?.action_items ?? []);
   const signalTargetPositions = computed(() => signalCenter.value?.target_positions ?? []);
   const signalTopCandidates = computed(() => signalCenter.value?.top_candidates ?? []);
+  const signalExecutionDeviation = computed(() => {
+    const items = signalExecutionItemsDraft.value || [];
+    const normalizedItems = items.map((item) => {
+      const plannedQuantity = Math.max(Number(item.planned_quantity || 0), 0);
+      const executedQuantity = Math.max(Number(item.executed_quantity || 0), 0);
+      const executedPrice = Math.max(Number(item.executed_price || 0), 0);
+      const quantityGap = executedQuantity - plannedQuantity;
+      const completionRatio = plannedQuantity > 0 ? executedQuantity / plannedQuantity : 0;
+      return {
+        ...item,
+        plannedQuantity,
+        executedQuantity,
+        executedPrice,
+        quantityGap,
+        completionRatio,
+        plannedNotional: plannedQuantity * executedPrice,
+        executedNotional: executedQuantity * executedPrice,
+      };
+    });
+
+    const missedItems = normalizedItems.filter((item) => item.plannedQuantity > 0 && item.executedQuantity === 0);
+    const partialItems = normalizedItems.filter(
+      (item) => item.plannedQuantity > 0 && item.executedQuantity > 0 && item.executedQuantity < item.plannedQuantity,
+    );
+    const overfilledItems = normalizedItems.filter((item) => item.executedQuantity > item.plannedQuantity);
+    const exactItems = normalizedItems.filter(
+      (item) => item.plannedQuantity > 0 && item.executedQuantity === item.plannedQuantity,
+    );
+    const totalPlannedNotional = normalizedItems.reduce((sum, item) => sum + item.plannedNotional, 0);
+    const totalExecutedNotional = normalizedItems.reduce((sum, item) => sum + item.executedNotional, 0);
+
+    return {
+      items: normalizedItems,
+      missedItems,
+      partialItems,
+      overfilledItems,
+      exactItems,
+      completionRate: totalPlannedNotional > 0 ? totalExecutedNotional / totalPlannedNotional : 0,
+      totalPlannedNotional,
+      totalExecutedNotional,
+      underExecutedNotional: Math.max(totalPlannedNotional - totalExecutedNotional, 0),
+    };
+  });
   const signalHistoryStats = computed(() => {
     const rows = signalHistory.value || [];
     const executedRows = rows.filter((item) => item.review_status === "executed");
@@ -195,6 +238,7 @@ export function useSignalState(errorRef) {
     signalReviewDraft,
     signalExecutionItemsDraft,
     signalExecutionSummary,
+    signalExecutionDeviation,
     signalHistoryStats,
     signalMessage,
     latestSignalSummary,

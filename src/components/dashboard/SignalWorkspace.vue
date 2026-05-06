@@ -13,6 +13,7 @@ const props = defineProps({
   signalReviewDraft: { type: String, default: "" },
   signalExecutionItemsDraft: { type: Array, default: () => [] },
   signalExecutionSummary: { type: Object, default: () => ({}) },
+  signalExecutionDeviation: { type: Object, default: () => ({}) },
   signalHistoryStats: { type: Object, default: () => ({}) },
   signalMessage: { type: String, default: "" },
 });
@@ -421,6 +422,48 @@ function isHistoryExpanded(modelRunId) {
         <div class="table-header signal-sub-header">
           <div class="section-title">真实成交回写</div>
           <div class="helper-text">下单完成后，把实际成交数量、成交价记进来，方便复盘。</div>
+        </div>
+
+        <div class="signal-execution-summary signal-execution-deviation-summary">
+          <div class="summary-chip">
+            <span>执行完成度</span>
+            <strong>{{ ((signalExecutionDeviation.completionRate || 0) * 100).toFixed(1) }}%</strong>
+          </div>
+          <div class="summary-chip">
+            <span>计划金额</span>
+            <strong>{{ (signalExecutionDeviation.totalPlannedNotional || 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 }) }}</strong>
+          </div>
+          <div class="summary-chip">
+            <span>少执行金额</span>
+            <strong>{{ (signalExecutionDeviation.underExecutedNotional || 0).toLocaleString("zh-CN", { maximumFractionDigits: 0 }) }}</strong>
+          </div>
+          <div class="summary-chip">
+            <span>未执行</span>
+            <strong>{{ signalExecutionDeviation.missedItems?.length || 0 }} 笔</strong>
+          </div>
+          <div class="summary-chip">
+            <span>部分执行</span>
+            <strong>{{ signalExecutionDeviation.partialItems?.length || 0 }} 笔</strong>
+          </div>
+          <div class="summary-chip">
+            <span>超额执行</span>
+            <strong>{{ signalExecutionDeviation.overfilledItems?.length || 0 }} 笔</strong>
+          </div>
+        </div>
+
+        <div
+          v-if="signalExecutionDeviation.missedItems?.length || signalExecutionDeviation.partialItems?.length || signalExecutionDeviation.overfilledItems?.length"
+          class="signal-deviation-list"
+        >
+          <div v-for="row in signalExecutionDeviation.missedItems || []" :key="`missed-${row.symbol}-${row.action}`" class="status-note">
+            {{ row.symbol }} {{ row.name }}：{{ row.action }}计划 {{ row.plannedQuantity }} 股，但还没有回写任何成交。
+          </div>
+          <div v-for="row in signalExecutionDeviation.partialItems || []" :key="`partial-${row.symbol}-${row.action}`" class="status-note">
+            {{ row.symbol }} {{ row.name }}：{{ row.action }}计划 {{ row.plannedQuantity }} 股，实际 {{ row.executedQuantity }} 股，少执行 {{ row.plannedQuantity - row.executedQuantity }} 股。
+          </div>
+          <div v-for="row in signalExecutionDeviation.overfilledItems || []" :key="`over-${row.symbol}-${row.action}`" class="status-note">
+            {{ row.symbol }} {{ row.name }}：{{ row.action }}计划 {{ row.plannedQuantity }} 股，实际 {{ row.executedQuantity }} 股，超出 {{ row.executedQuantity - row.plannedQuantity }} 股。
+          </div>
         </div>
 
         <div class="signal-execution-summary">

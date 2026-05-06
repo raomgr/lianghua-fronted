@@ -35,6 +35,7 @@ onBeforeUnmount(() => {
       :signal-review-draft="dashboard.signalReviewDraft"
       :signal-execution-items-draft="dashboard.signalExecutionItemsDraft"
       :signal-execution-summary="dashboard.signalExecutionSummary"
+      :signal-execution-deviation="dashboard.signalExecutionDeviation"
       :signal-history-stats="dashboard.signalHistoryStats"
       :signal-message="dashboard.signalMessage"
       @refresh="dashboard.loadSignalWorkspace"

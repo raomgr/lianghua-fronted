@@ -880,6 +880,16 @@
   margin-top: 14px;
 }
 
+.signal-execution-deviation-summary {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.signal-deviation-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
 .signal-execution-scroll {
   margin-top: 14px;
 }
