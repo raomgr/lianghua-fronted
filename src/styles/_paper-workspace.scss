@@ -1,10 +1,108 @@
+.paper-workspace {
+  font-size: 14px;
+}
+
 .paper-equity-echart {
   height: 280px;
+}
+
+.paper-daily-stack {
+  display: grid;
+  gap: 20px;
+  width: 100%;
+}
+
+.paper-log-stack {
+  display: grid;
+  gap: 20px;
+  width: 100%;
+}
+
+.paper-record-stack {
+  display: grid;
+  gap: 20px;
+  width: 100%;
+}
+
+.paper-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.paper-workspace .table-header {
+  margin-bottom: 14px;
+}
+
+.paper-title-row .section-title {
+  margin-bottom: 0;
+}
+
+.paper-info-icon {
+  color: var(--muted);
+  font-size: 16px;
+  transform: translateY(1px);
+  cursor: help;
+}
+
+.paper-daily-panel {
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.paper-subsection + .paper-subsection {
+  margin-top: 24px;
+}
+
+.paper-subsection-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.paper-subsection-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.paper-subsection-head h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.35;
 }
 
 .paper-account-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px 20px;
+}
+
+.paper-overview-descriptions {
+  --el-descriptions-table-border: rgba(32, 43, 35, 0.08);
+  --el-descriptions-item-bordered-label-background: rgba(231, 233, 219, 0.55);
+  --el-descriptions-item-bordered-content-background: rgba(255, 255, 255, 0.72);
+}
+
+.paper-overview-descriptions .el-descriptions__label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.paper-overview-descriptions .el-descriptions__content {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.paper-config-table-wrap {
+  margin-bottom: 18px;
+}
+
+.paper-config-table .el-input-number {
+  width: 180px;
 }
 
 .paper-account-grid > div {
@@ -33,6 +131,15 @@
   gap: 14px 16px;
 }
 
+.paper-daily-settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 320px));
+  justify-content: start;
+}
+
+.paper-daily-filter-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .paper-form-grid > label,
 .paper-filter-grid > label {
   display: grid;
@@ -48,7 +155,6 @@
   margin-left: 2px;
   color: var(--muted);
   font-size: 14px;
-  font-weight: 700;
 }
 
 .paper-form-grid > label > input,
@@ -84,16 +190,14 @@
   margin-left: 0;
   color: var(--muted);
   font-size: 14px;
-  font-weight: 700;
 }
 
 .paper-account-grid > div > strong {
   display: block;
   margin-top: 10px;
   color: var(--text);
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1.2;
-  font-weight: 700;
   letter-spacing: -0.02em;
   overflow-wrap: anywhere;
 }
@@ -132,7 +236,250 @@
   background: rgba(255, 255, 255, 0.62);
   border: 1px solid rgba(32, 43, 35, 0.08);
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
   line-height: 1.2;
+  white-space: normal;
+}
+
+.status-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin-top: 16px;
+}
+
+.status-meta > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(32, 43, 35, 0.07);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.status-meta > span.key {
+  color: var(--muted);
+  background: rgba(231, 233, 219, 0.45);
+}
+
+.paper-workspace .history-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.95fr) minmax(180px, 0.95fr) minmax(240px, 1.2fr);
+  gap: 12px 18px;
+  align-items: start;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(32, 43, 35, 0.08);
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 1px 2px rgba(46, 38, 18, 0.03);
+}
+
+.paper-workspace .history-row > div {
+  min-width: 0;
+}
+
+.paper-workspace .history-row strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.paper-workspace .history-row .subtle-caption {
+  margin-top: 2px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.paper-workspace .history-row.model-run-row {
+  grid-template-columns: minmax(180px, 0.95fr) minmax(180px, 0.95fr) minmax(240px, 1.2fr);
+}
+
+.paper-workspace .daily-run-row {
+  border-left: 3px solid rgba(22, 101, 52, 0.22);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.paper-workspace .daily-run-step-row {
+  grid-template-columns: minmax(120px, 0.7fr) minmax(180px, 1fr) minmax(240px, 1.3fr);
+}
+
+.paper-workspace .history-row .table-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.paper-workspace .mini-button {
+  white-space: nowrap;
+  min-height: 34px;
+  padding: 8px 12px;
+}
+
+.paper-workspace .card-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(32, 43, 35, 0.12) transparent;
+  padding-right: 4px;
+  border: 0;
+  background: transparent;
+}
+
+.paper-workspace .card-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.paper-workspace .card-scroll::-webkit-scrollbar-thumb {
+  background: rgba(32, 43, 35, 0.12);
+  border-radius: 999px;
+}
+
+.paper-workspace .card-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.paper-workspace .history-list {
+  gap: 10px;
+}
+
+.paper-workspace .history-list.section-panel {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(32, 43, 35, 0.08);
+}
+
+@media (max-width: 1200px) {
+  .paper-daily-settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .paper-daily-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .paper-workspace .history-row,
+  .paper-workspace .history-row.model-run-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .paper-workspace .daily-run-row,
+  .paper-workspace .daily-run-step-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 900px) {
+  .paper-daily-settings-grid,
+  .paper-daily-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .paper-workspace .history-row,
+  .paper-workspace .history-row.model-run-row,
+  .paper-workspace .daily-run-step-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.paper-daily-table-wrap {
+  border: 1px solid rgba(32, 43, 35, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.paper-record-table-wrap {
+  margin-top: 10px;
+  border: 1px solid rgba(32, 43, 35, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.paper-record-table {
+  --el-table-header-bg-color: rgba(231, 233, 219, 0.92);
+  --el-table-tr-bg-color: rgba(255, 255, 255, 0.78);
+  --el-table-row-hover-bg-color: rgba(22, 101, 52, 0.06);
+  --el-table-border-color: rgba(32, 43, 35, 0.08);
+  --el-table-text-color: var(--text);
+  --el-table-header-text-color: var(--muted);
+  font-size: 14px;
+}
+
+.paper-record-table .subtle-caption,
+.paper-daily-table .subtle-caption,
+.paper-record-text .subtle-caption,
+.paper-daily-expand-meta span {
+  font-size: 12px;
+}
+
+.paper-record-table .cell {
+  line-height: 1.5;
+}
+
+.paper-record-table .el-table__cell {
+  vertical-align: top;
+}
+
+.paper-record-text {
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.paper-daily-table .el-table__cell {
+  vertical-align: top;
+}
+
+.paper-daily-table .cell {
+  line-height: 1.45;
+}
+
+.paper-daily-table .subtle-caption {
+  margin-top: 4px;
+}
+
+.paper-daily-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.paper-daily-expand-shell {
+  padding: 14px 16px 16px;
+  background: rgba(249, 248, 243, 0.7);
+}
+
+.paper-daily-expand-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.paper-daily-expand-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(32, 43, 35, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .paper-daily-table .el-table__cell {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
 }

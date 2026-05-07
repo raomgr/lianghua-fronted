@@ -1,7 +1,7 @@
 .signal-ep-workspace {
   display: grid;
   gap: 18px;
-  font-size: 15px;
+  //font-size: 15px;
 }
 
 .signal-ep-header,
@@ -272,7 +272,6 @@
 .signal-ep-table-wrap {
   margin-top: 16px;
   border: 1px solid rgba(32, 43, 35, 0.08);
-  border-radius: 18px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.46);
 }
