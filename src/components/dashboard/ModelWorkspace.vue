@@ -117,3 +117,9 @@ defineProps({
     </div>
   </section>
 </template>
+
+<style scoped lang="scss">
+.model-compare-grid .compare-card {
+  min-height: 230px;
+}
+</style>

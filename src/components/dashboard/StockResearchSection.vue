@@ -170,3 +170,210 @@ const chartEnd = computed(() => props.visibleHistory.at(-1)?.trade_date ?? "");
     </div>
   </section>
 </template>
+
+<style scoped lang="scss">
+.detail-panel,
+.history-panel {
+  min-height: auto;
+}
+
+.detail-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.detail-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.toolbar-switches {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.detail-title {
+  margin: 0;
+  font-size: 32px;
+  line-height: 1;
+}
+
+.detail-title span {
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.detail-badge {
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-weight: 700;
+}
+
+.range-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mode-switch {
+  padding-left: 10px;
+  border-left: 1px solid rgba(32, 43, 35, 0.1);
+}
+
+.range-chip {
+  border: 1px solid rgba(20, 108, 67, 0.14);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.range-chip.active {
+  background: rgba(22, 101, 52, 0.1);
+  color: var(--accent);
+  border-color: rgba(22, 101, 52, 0.22);
+  font-weight: 700;
+}
+
+.positive-fill {
+  background: rgba(22, 101, 52, 0.12);
+  color: var(--accent);
+}
+
+.negative-fill {
+  background: rgba(180, 35, 24, 0.12);
+  color: var(--negative);
+}
+
+.detail-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.detail-metrics div {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.detail-metrics span {
+  display: block;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.detail-metrics strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 20px;
+}
+
+.chart-footer {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.model-highlight {
+  margin-bottom: 16px;
+  border-radius: 18px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(22, 101, 52, 0.13), rgba(243, 181, 70, 0.1));
+  border: 1px solid rgba(22, 101, 52, 0.12);
+}
+
+.model-highlight-symbol {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.model-highlight-score {
+  margin: 8px 0 12px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.factor-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.factor-card {
+  border-radius: 18px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.factor-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.factor-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 17px;
+}
+
+@media (max-width: 960px) {
+  .detail-header,
+  .detail-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .toolbar-switches {
+    justify-content: flex-start;
+  }
+
+  .detail-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .factor-card-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .detail-title {
+    font-size: 28px;
+  }
+
+  .mode-switch {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .detail-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .factor-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

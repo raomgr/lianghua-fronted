@@ -1,0 +1,138 @@
+.paper-equity-echart {
+  height: 280px;
+}
+
+.paper-account-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px 20px;
+}
+
+.paper-account-grid > div {
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 4px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.paper-form-grid,
+.paper-filter-grid {
+  display: grid;
+  margin-bottom: 18px;
+}
+
+.paper-form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px 16px;
+}
+
+.paper-filter-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px 16px;
+}
+
+.paper-form-grid > label,
+.paper-filter-grid > label {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.paper-form-grid > label > span,
+.paper-filter-grid > label > span {
+  margin-left: 2px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.paper-form-grid > label > input,
+.paper-form-grid .el-input,
+.paper-form-grid .el-input-number,
+.paper-form-grid .el-select,
+.paper-form-grid .el-date-editor,
+.paper-filter-grid .el-input,
+.paper-filter-grid .el-select {
+  margin-top: 0;
+  width: 100%;
+}
+
+.paper-form-grid > label > .el-input .el-input__wrapper,
+.paper-form-grid > label > .el-select .el-select__wrapper,
+.paper-form-grid > label > .el-date-editor.el-input__wrapper,
+.paper-filter-grid > label > .el-input .el-input__wrapper,
+.paper-filter-grid > label > .el-select .el-select__wrapper {
+  min-height: 46px;
+  border-radius: 14px;
+}
+
+
+.paper-form-grid .el-input-number {
+  width: 100%;
+}
+
+.paper-form-grid .el-input-number .el-input__inner {
+  text-align: left;
+}
+
+.paper-account-grid > div > span {
+  margin-left: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.paper-account-grid > div > strong {
+  display: block;
+  margin-top: 10px;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.paper-account-grid > div > strong.positive {
+  color: #1d6f42;
+}
+
+.paper-account-grid > div > strong.negative {
+  color: #b45309;
+}
+
+.paper-form-grid > label > .el-input .el-input__wrapper.is-focus,
+.paper-form-grid > label > .el-select .el-select__wrapper.is-focused,
+.paper-form-grid > label > .el-date-editor.el-input__wrapper.is-focus,
+.paper-filter-grid > label > .el-input .el-input__wrapper.is-focus,
+.paper-filter-grid > label > .el-select .el-select__wrapper.is-focused {
+  box-shadow:
+    0 0 0 1px rgba(22, 101, 52, 0.22) inset,
+    0 0 0 3px rgba(22, 101, 52, 0.08);
+}
+
+.paper-summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin-top: 14px;
+}
+
+.paper-summary-strip span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(32, 43, 35, 0.08);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}

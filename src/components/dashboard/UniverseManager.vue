@@ -111,3 +111,79 @@ const universeInputModel = computed({
     </div>
   </section>
 </template>
+
+<style scoped lang="scss">
+.status-pill {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(22, 101, 52, 0.09);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.universe-manager {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 14px;
+  align-items: stretch;
+}
+
+.universe-column {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+}
+
+.universe-panel {
+  gap: 0;
+}
+
+.universe-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.selection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sub-title {
+  margin-bottom: 0;
+}
+
+.manual-entry {
+  margin-top: 18px;
+}
+
+.workspace-card {
+  min-height: 300px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.subdued-inline {
+  max-width: 560px;
+}
+
+@media (max-width: 900px) {
+  .universe-manager {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .universe-search-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

@@ -12,3 +12,25 @@ defineProps({
     </section>
   </section>
 </template>
+
+<style scoped lang="scss">
+.metric-card {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: var(--card);
+  backdrop-filter: blur(14px);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+}
+
+.metric-label {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.metric-value {
+  margin-top: 8px;
+  font-size: 32px;
+  font-weight: 700;
+}
+</style>

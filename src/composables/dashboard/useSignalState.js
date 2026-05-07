@@ -10,6 +10,7 @@ export function useSignalState(errorRef) {
   const signalExecutionItemsDraft = ref([]);
   const signalMessage = ref("");
   let signalPollingTimer = null;
+  let signalMessageTimer = null;
 
   const latestSignalSummary = computed(() => signalCenter.value?.summary ?? null);
   const latestSignalReview = computed(() => signalCenter.value?.review ?? null);
@@ -121,6 +122,9 @@ export function useSignalState(errorRef) {
   }
 
   function syncExecutionDraftFromCenter(center) {
+    const actionMap = new Map(
+      (center?.action_items || []).map((item) => [String(item.symbol), Number(item.last_price || 0)]),
+    );
     signalExecutionItemsDraft.value = (center?.review?.execution_items?.length
       ? center.review.execution_items
       : center?.action_items?.filter((item) => item.action !== "持有").map((item) => ({
@@ -133,6 +137,7 @@ export function useSignalState(errorRef) {
               : Number(item.target_quantity || 0),
           executed_quantity: 0,
           executed_price: Number(item.last_price || 0),
+          reference_price: Number(item.last_price || 0),
           note: "",
         })) || []
     ).map((item) => ({
@@ -142,6 +147,7 @@ export function useSignalState(errorRef) {
       planned_quantity: Number(item.planned_quantity || 0),
       executed_quantity: Number(item.executed_quantity || 0),
       executed_price: Number(item.executed_price || 0),
+      reference_price: Number(item.reference_price || actionMap.get(String(item.symbol)) || item.executed_price || 0),
       note: item.note || "",
     }));
   }
@@ -187,6 +193,10 @@ export function useSignalState(errorRef) {
     }
     signalReviewing.value = true;
     signalMessage.value = "";
+    if (signalMessageTimer) {
+      window.clearTimeout(signalMessageTimer);
+      signalMessageTimer = null;
+    }
     try {
       const review = await saveSignalReview({
         model_run_id: latestSignalSummary.value.model_run_id,
@@ -200,6 +210,10 @@ export function useSignalState(errorRef) {
           : status === "ignored"
             ? "已标记为已忽略。"
             : "已恢复为待执行。";
+      signalMessageTimer = window.setTimeout(() => {
+        signalMessage.value = "";
+        signalMessageTimer = null;
+      }, 3000);
       signalCenter.value = {
         ...signalCenter.value,
         review,
@@ -227,6 +241,10 @@ export function useSignalState(errorRef) {
     if (signalPollingTimer) {
       window.clearInterval(signalPollingTimer);
       signalPollingTimer = null;
+    }
+    if (signalMessageTimer) {
+      window.clearTimeout(signalMessageTimer);
+      signalMessageTimer = null;
     }
   }
 

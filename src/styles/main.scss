@@ -2,4 +2,7 @@
 @use "./base";
 @use "./layout";
 @use "./components";
+@use "./dashboard-shared";
+@use "./paper-workspace";
+@use "./signal-workspace";
 @use "./responsive";

@@ -252,50 +252,136 @@ const filteredReports = computed(() => {
         <div class="table-header">
           <div class="section-title">执行参数与风控</div>
         </div>
-        <div class="model-summary-grid compact-grid">
+        <div class="paper-form-grid">
           <label>
             <span>信号只数</span>
-            <input :value="paperTopN" type="number" min="1" max="10" @input="$emit('update:paperTopN', Number($event.target.value))">
+            <el-input-number
+              size="large"
+              :model-value="paperTopN"
+              :min="1"
+              :max="10"
+              controls-position="right"
+              @update:model-value="$emit('update:paperTopN', Number($event ?? 0))"
+            />
           </label>
           <label>
             <span>资金使用率</span>
-            <input :value="paperCapitalFraction" type="number" min="0.1" max="1" step="0.05" @input="$emit('update:paperCapitalFraction', Number($event.target.value))">
+            <el-input-number
+              size="large"
+              :model-value="paperCapitalFraction"
+              :min="0.1"
+              :max="1"
+              :step="0.05"
+              controls-position="right"
+              @update:model-value="$emit('update:paperCapitalFraction', Number($event ?? 0))"
+            />
           </label>
           <label>
             <span>单票上限</span>
-            <input :value="paperMaxPositionWeight" type="number" min="0.05" max="1" step="0.05" @input="$emit('update:paperMaxPositionWeight', Number($event.target.value))">
+            <el-input-number
+              size="large"
+              :model-value="paperMaxPositionWeight"
+              :min="0.05"
+              :max="1"
+              :step="0.05"
+              controls-position="right"
+              @update:model-value="$emit('update:paperMaxPositionWeight', Number($event ?? 0))"
+            />
           </label>
           <label>
             <span>最低现金缓冲</span>
-            <input :value="paperMinCashBufferRatio" type="number" min="0" max="0.8" step="0.01" @input="$emit('update:paperMinCashBufferRatio', Number($event.target.value))">
+            <el-input-number
+              size="large"
+              :model-value="paperMinCashBufferRatio"
+              :min="0"
+              :max="0.8"
+              :step="0.01"
+              controls-position="right"
+              @update:model-value="$emit('update:paperMinCashBufferRatio', Number($event ?? 0))"
+            />
           </label>
           <label>
             <span>最大换手倍数</span>
-            <input :value="paperMaxTurnoverRatio" type="number" min="0.1" max="2" step="0.1" @input="$emit('update:paperMaxTurnoverRatio', Number($event.target.value))">
+            <el-input-number
+              size="large"
+              :model-value="paperMaxTurnoverRatio"
+              :min="0.1"
+              :max="2"
+              :step="0.1"
+              controls-position="right"
+              @update:model-value="$emit('update:paperMaxTurnoverRatio', Number($event ?? 0))"
+            />
           </label>
           <label>
             <span>止损阈值</span>
-            <input :value="paperStopLossPct" type="number" min="0" max="0.5" step="0.01" @input="$emit('update:paperStopLossPct', Number($event.target.value))">
+            <el-input-number
+              size="large"
+              :model-value="paperStopLossPct"
+              :min="0"
+              :max="0.5"
+              :step="0.01"
+              controls-position="right"
+              @update:model-value="$emit('update:paperStopLossPct', Number($event ?? 0))"
+            />
           </label>
           <label>
             <span>止盈阈值</span>
-            <input :value="paperTakeProfitPct" type="number" min="0" max="1" step="0.01" @input="$emit('update:paperTakeProfitPct', Number($event.target.value))">
+            <el-input-number
+              size="large"
+              :model-value="paperTakeProfitPct"
+              :min="0"
+              :max="1"
+              :step="0.01"
+              controls-position="right"
+              @update:model-value="$emit('update:paperTakeProfitPct', Number($event ?? 0))"
+            />
           </label>
           <label>
             <span>成交率模拟</span>
-            <input :value="paperFillRatio" type="number" min="0" max="1" step="0.05" @input="$emit('update:paperFillRatio', Number($event.target.value))">
+            <el-input-number
+              size="large"
+              :model-value="paperFillRatio"
+              :min="0"
+              :max="1"
+              :step="0.05"
+              controls-position="right"
+              @update:model-value="$emit('update:paperFillRatio', Number($event ?? 0))"
+            />
           </label>
           <label>
             <span>最大回撤阈值</span>
-            <input :value="paperMaxDrawdownLimit" type="number" min="0.01" max="0.8" step="0.01" @input="$emit('update:paperMaxDrawdownLimit', Number($event.target.value))">
+            <el-input-number
+              size="large"
+              :model-value="paperMaxDrawdownLimit"
+              :min="0.01"
+              :max="0.8"
+              :step="0.01"
+              controls-position="right"
+              @update:model-value="$emit('update:paperMaxDrawdownLimit', Number($event ?? 0))"
+            />
           </label>
           <label>
             <span>最近权益跌幅阈值</span>
-            <input :value="paperMaxEquityChangeLimit" type="number" min="0.01" max="0.5" step="0.01" @input="$emit('update:paperMaxEquityChangeLimit', Number($event.target.value))">
+            <el-input-number
+              size="large"
+              :model-value="paperMaxEquityChangeLimit"
+              :min="0.01"
+              :max="0.5"
+              :step="0.01"
+              controls-position="right"
+              @update:model-value="$emit('update:paperMaxEquityChangeLimit', Number($event ?? 0))"
+            />
           </label>
           <label>
             <span>重置本金</span>
-            <input :value="paperInitialCash" type="number" min="10000" step="10000" @input="$emit('update:paperInitialCash', Number($event.target.value))">
+            <el-input-number
+              size="large"
+              :model-value="paperInitialCash"
+              :min="10000"
+              :step="10000"
+              controls-position="right"
+              @update:model-value="$emit('update:paperInitialCash', Number($event ?? 0))"
+            />
           </label>
         </div>
         <div class="hero-actions compact-actions">
@@ -334,7 +420,7 @@ const filteredReports = computed(() => {
         <div class="table-header">
           <div class="section-title">账户概览</div>
         </div>
-        <div v-if="account" class="model-summary-grid compact-grid">
+        <div v-if="account" class="model-summary-grid compact-grid paper-account-grid">
           <div>
             <span>账户权益</span>
             <strong>{{ formatCurrency(account.equity) }}</strong>
@@ -390,54 +476,66 @@ const filteredReports = computed(() => {
         <div class="table-header">
           <div class="section-title">每日运行</div>
         </div>
-        <div class="model-summary-grid compact-grid">
+        <div class="paper-form-grid">
           <label>
             <span>计划时间</span>
-            <input
-              :value="dailySettings?.run_time || '15:10'"
-              type="time"
-              @input="$emit('update:daily-settings-field', { key: 'run_time', value: $event.target.value })"
-            >
+            <el-time-select
+              size="large"
+              :model-value="dailySettings?.run_time || '15:10'"
+              start="09:30"
+              step="00:10"
+              end="23:30"
+              placeholder="选择时间"
+              @update:model-value="$emit('update:daily-settings-field', { key: 'run_time', value: $event })"
+            />
           </label>
           <label>
             <span>启用日更</span>
-            <select
-              :value="String(dailySettings?.enabled ?? false)"
-              @change="$emit('update:daily-settings-field', { key: 'enabled', value: $event.target.value === 'true' })"
+            <el-select
+              size="large"
+              :model-value="dailySettings?.enabled ?? false"
+              placeholder="选择状态"
+              @update:model-value="$emit('update:daily-settings-field', { key: 'enabled', value: $event })"
             >
-              <option value="true">启用</option>
-              <option value="false">停用</option>
-            </select>
+              <el-option :value="true" label="启用" />
+              <el-option :value="false" label="停用" />
+            </el-select>
           </label>
           <label>
             <span>自动同步</span>
-            <select
-              :value="String(dailySettings?.auto_sync ?? true)"
-              @change="$emit('update:daily-settings-field', { key: 'auto_sync', value: $event.target.value === 'true' })"
+            <el-select
+              size="large"
+              :model-value="dailySettings?.auto_sync ?? true"
+              placeholder="选择状态"
+              @update:model-value="$emit('update:daily-settings-field', { key: 'auto_sync', value: $event })"
             >
-              <option value="true">开启</option>
-              <option value="false">关闭</option>
-            </select>
+              <el-option :value="true" label="开启" />
+              <el-option :value="false" label="关闭" />
+            </el-select>
           </label>
           <label>
             <span>自动训练</span>
-            <select
-              :value="String(dailySettings?.auto_train ?? true)"
-              @change="$emit('update:daily-settings-field', { key: 'auto_train', value: $event.target.value === 'true' })"
+            <el-select
+              size="large"
+              :model-value="dailySettings?.auto_train ?? true"
+              placeholder="选择状态"
+              @update:model-value="$emit('update:daily-settings-field', { key: 'auto_train', value: $event })"
             >
-              <option value="true">开启</option>
-              <option value="false">关闭</option>
-            </select>
+              <el-option :value="true" label="开启" />
+              <el-option :value="false" label="关闭" />
+            </el-select>
           </label>
           <label>
             <span>自动调仓</span>
-            <select
-              :value="String(dailySettings?.auto_rebalance ?? true)"
-              @change="$emit('update:daily-settings-field', { key: 'auto_rebalance', value: $event.target.value === 'true' })"
+            <el-select
+              size="large"
+              :model-value="dailySettings?.auto_rebalance ?? true"
+              placeholder="选择状态"
+              @update:model-value="$emit('update:daily-settings-field', { key: 'auto_rebalance', value: $event })"
             >
-              <option value="true">开启</option>
-              <option value="false">关闭</option>
-            </select>
+              <el-option :value="true" label="开启" />
+              <el-option :value="false" label="关闭" />
+            </el-select>
           </label>
         </div>
         <div class="hero-actions compact-actions">
@@ -448,31 +546,32 @@ const filteredReports = computed(() => {
             {{ paperRunningDailyCycle ? "运行中..." : "立即执行日更" }}
           </button>
           <button
+            v-if="paperLatestFailedStep"
             class="secondary-button"
-            :disabled="!paperLatestFailedStep || !!paperRerunningDailyStep"
+            :disabled="!!paperRerunningDailyStep"
             @click="$emit('rerun-latest-failed-step')"
           >
-            {{ paperRerunningDailyStep ? `补跑${paperRerunningDailyStep}中...` : paperLatestFailedStep ? `重跑失败步骤 ${paperLatestFailedStep}` : "没有失败步骤" }}
+            {{ paperRerunningDailyStep ? `补跑${paperRerunningDailyStep}中...` : `重跑失败步骤 ${paperLatestFailedStep}` }}
           </button>
         </div>
-        <div v-if="dailySettings" class="status-meta">
-          <span>计划时间 {{ dailySettings.run_time }}</span>
-          <span>同步 {{ dailySettings.auto_sync ? '开' : '关' }}</span>
-          <span>训练 {{ dailySettings.auto_train ? '开' : '关' }}</span>
-          <span>调仓 {{ dailySettings.auto_rebalance ? '开' : '关' }}</span>
-          <span>配置更新 {{ dailySettings.updated_at }}</span>
-        </div>
-        <div v-if="schedulerStatus" class="status-meta">
-          <span>调度循环 {{ schedulerStatus.loop_running ? '运行中' : '未运行' }}</span>
-          <span v-if="schedulerStatus.last_outcome">最近结果 {{ schedulerStatus.last_outcome }}</span>
-          <span v-if="schedulerStatus.retry_from_step">补跑起点 {{ schedulerStatus.retry_from_step }}</span>
-          <span v-if="schedulerStatus.next_run_at">下次预计 {{ schedulerStatus.next_run_at }}</span>
-          <span v-if="schedulerStatus.next_retry_at">下次重试 {{ schedulerStatus.next_retry_at }}</span>
-          <span v-if="schedulerStatus.retry_attempt">重试 {{ schedulerStatus.retry_attempt }}/{{ schedulerStatus.max_retry_attempts }}</span>
-          <span v-if="schedulerStatus.last_triggered_at">最近触发 {{ schedulerStatus.last_triggered_at }}</span>
-          <span v-if="schedulerStatus.last_completed_at">最近完成 {{ schedulerStatus.last_completed_at }}</span>
+        <div v-if="dailySettings || schedulerStatus" class="paper-summary-strip">
+          <span v-if="dailySettings">
+            日更{{ dailySettings.enabled ? "已启用" : "已停用" }} · {{ dailySettings.run_time }}
+          </span>
+          <span v-if="dailySettings">
+            同步{{ dailySettings.auto_sync ? "开" : "关" }} / 训练{{ dailySettings.auto_train ? "开" : "关" }} / 调仓{{ dailySettings.auto_rebalance ? "开" : "关" }}
+          </span>
+          <span v-if="schedulerStatus">
+            调度{{ schedulerStatus.loop_running ? "运行中" : "未运行" }}
+          </span>
+          <span v-if="schedulerStatus?.last_outcome">最近结果 {{ schedulerStatus.last_outcome }}</span>
+          <span v-if="schedulerStatus?.next_run_at">下次 {{ schedulerStatus.next_run_at }}</span>
+          <span v-if="schedulerStatus?.next_retry_at">下次重试 {{ schedulerStatus.next_retry_at }}</span>
+          <span v-if="schedulerStatus?.retry_attempt">重试 {{ schedulerStatus.retry_attempt }}/{{ schedulerStatus.max_retry_attempts }}</span>
+          <span v-if="dailySettings?.updated_at">配置更新 {{ dailySettings.updated_at }}</span>
         </div>
         <p v-if="schedulerStatus?.note" class="status-note">{{ schedulerStatus.note }}</p>
+        <p v-if="!paperLatestFailedStep" class="subtle-caption">当前没有失败步骤需要补跑。</p>
       </section>
 
       <section class="panel compact-panel equal-card">
@@ -480,28 +579,28 @@ const filteredReports = computed(() => {
           <div class="section-title">最近日更运行</div>
           <span class="subtle-caption">命中 {{ filteredDailyRuns.length }} / {{ dailyRuns.length }}</span>
         </div>
-        <div class="model-summary-grid compact-grid">
+        <div class="paper-filter-grid">
           <label>
             <span>状态筛选</span>
-            <select v-model="dailyRunStatusFilter">
-              <option value="all">全部</option>
-              <option value="success">成功</option>
-              <option value="partial">部分告警</option>
-              <option value="failed">失败</option>
-            </select>
+            <el-select v-model="dailyRunStatusFilter" size="large" placeholder="全部">
+              <el-option value="all" label="全部" />
+              <el-option value="success" label="成功" />
+              <el-option value="partial" label="部分告警" />
+              <el-option value="failed" label="失败" />
+            </el-select>
           </label>
           <label>
             <span>步骤筛选</span>
-            <select v-model="dailyRunStepFilter">
-              <option value="all">全部</option>
-              <option value="sync">sync</option>
-              <option value="train">train</option>
-              <option value="rebalance">rebalance</option>
-            </select>
+            <el-select v-model="dailyRunStepFilter" size="large" placeholder="全部">
+              <el-option value="all" label="全部" />
+              <el-option value="sync" label="sync" />
+              <el-option value="train" label="train" />
+              <el-option value="rebalance" label="rebalance" />
+            </el-select>
           </label>
           <label>
             <span>关键词搜索</span>
-            <input v-model="dailyRunKeyword" type="text" placeholder="搜索备注、报错、步骤名">
+            <el-input v-model="dailyRunKeyword" size="large" placeholder="搜索备注、报错、步骤名" clearable />
           </label>
         </div>
         <div class="card-scroll">
@@ -694,22 +793,22 @@ const filteredReports = computed(() => {
           <div class="section-title">执行日报</div>
           <span class="subtle-caption">命中 {{ filteredReports.length }} / {{ reports.length }}</span>
         </div>
-        <div class="model-summary-grid compact-grid">
+        <div class="paper-filter-grid">
           <label>
             <span>类型筛选</span>
-            <select v-model="reportTypeFilter">
-              <option value="all">全部</option>
-              <option value="reset">reset</option>
-              <option value="rebalance">rebalance</option>
-              <option value="retry">retry</option>
-              <option value="cancel">cancel</option>
-              <option value="reject">reject</option>
-              <option value="daily-cycle">daily-cycle</option>
-            </select>
+            <el-select v-model="reportTypeFilter" size="large" placeholder="全部">
+              <el-option value="all" label="全部" />
+              <el-option value="reset" label="reset" />
+              <el-option value="rebalance" label="rebalance" />
+              <el-option value="retry" label="retry" />
+              <el-option value="cancel" label="cancel" />
+              <el-option value="reject" label="reject" />
+              <el-option value="daily-cycle" label="daily-cycle" />
+            </el-select>
           </label>
           <label>
             <span>关键词搜索</span>
-            <input v-model="reportKeyword" type="text" placeholder="搜索日报标题、步骤、备注">
+            <el-input v-model="reportKeyword" size="large" placeholder="搜索日报标题、步骤、备注" clearable />
           </label>
         </div>
         <div class="card-scroll">
@@ -746,35 +845,35 @@ const filteredReports = computed(() => {
           <div class="section-title">风控事件</div>
           <span class="subtle-caption">命中 {{ filteredRiskEvents.length }} / {{ riskEvents.length }}</span>
         </div>
-        <div class="model-summary-grid compact-grid">
+        <div class="paper-filter-grid">
           <label>
             <span>级别筛选</span>
-            <select v-model="riskSeverityFilter">
-              <option value="all">全部</option>
-              <option value="info">提示</option>
-              <option value="warning">预警</option>
-              <option value="error">阻断</option>
-            </select>
+            <el-select v-model="riskSeverityFilter" size="large" placeholder="全部">
+              <el-option value="all" label="全部" />
+              <el-option value="info" label="提示" />
+              <el-option value="warning" label="预警" />
+              <el-option value="error" label="阻断" />
+            </el-select>
           </label>
           <label>
             <span>事件筛选</span>
-            <select v-model="riskEventTypeFilter">
-              <option value="all">全部</option>
-              <option value="preview_blocked">preview_blocked</option>
-              <option value="preview_warning">preview_warning</option>
-              <option value="daily_sync_failed">daily_sync_failed</option>
-              <option value="daily_train_failed">daily_train_failed</option>
-              <option value="daily_rebalance_failed">daily_rebalance_failed</option>
-              <option value="daily_rebalance_blocked">daily_rebalance_blocked</option>
-              <option value="scheduler_failed">scheduler_failed</option>
-              <option value="scheduler_retry_scheduled">scheduler_retry_scheduled</option>
-              <option value="scheduler_retry_exhausted">scheduler_retry_exhausted</option>
-              <option value="scheduler_completed">scheduler_completed</option>
-            </select>
+            <el-select v-model="riskEventTypeFilter" size="large" placeholder="全部">
+              <el-option value="all" label="全部" />
+              <el-option value="preview_blocked" label="preview_blocked" />
+              <el-option value="preview_warning" label="preview_warning" />
+              <el-option value="daily_sync_failed" label="daily_sync_failed" />
+              <el-option value="daily_train_failed" label="daily_train_failed" />
+              <el-option value="daily_rebalance_failed" label="daily_rebalance_failed" />
+              <el-option value="daily_rebalance_blocked" label="daily_rebalance_blocked" />
+              <el-option value="scheduler_failed" label="scheduler_failed" />
+              <el-option value="scheduler_retry_scheduled" label="scheduler_retry_scheduled" />
+              <el-option value="scheduler_retry_exhausted" label="scheduler_retry_exhausted" />
+              <el-option value="scheduler_completed" label="scheduler_completed" />
+            </el-select>
           </label>
           <label>
             <span>关键词搜索</span>
-            <input v-model="riskKeyword" type="text" placeholder="搜索事件名、报错、说明">
+            <el-input v-model="riskKeyword" size="large" placeholder="搜索事件名、报错、说明" clearable />
           </label>
         </div>
         <div class="card-scroll">

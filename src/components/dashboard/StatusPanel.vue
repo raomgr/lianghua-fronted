@@ -54,3 +54,63 @@ defineProps({
     </div>
   </section>
 </template>
+
+<style scoped lang="scss">
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.status-grid-wide {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.status-item {
+  border-radius: 18px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.status-item span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.status-item strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 17px;
+}
+
+.status-meta-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.status-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+@media (max-width: 960px) {
+  .status-grid-wide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .status-grid,
+  .status-grid-wide {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

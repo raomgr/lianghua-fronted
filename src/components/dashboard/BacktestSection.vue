@@ -886,3 +886,203 @@ function applySensitivityRecommendation(point) {
     </section>
   </section>
 </template>
+
+<style scoped lang="scss">
+.preset-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px auto;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.preset-input {
+  margin-top: 0;
+}
+
+.preset-tag-select {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.preset-sync-row {
+  display: flex;
+  align-items: center;
+  gap: 8px 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.preset-sync-button {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.preset-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.preset-filter-chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.preset-filter-chip.active {
+  box-shadow: 0 0 0 1px rgba(22, 101, 52, 0.12) inset;
+}
+
+.preset-filter-chip.utility {
+  border-style: dashed;
+}
+
+.preset-filter-chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.preset-filter-count {
+  display: inline-flex;
+  min-width: 16px;
+  justify-content: center;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: inherit;
+  opacity: 0.85;
+}
+
+.file-trigger {
+  position: relative;
+  overflow: hidden;
+}
+
+.file-hidden-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.preset-strip {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.preset-chip {
+  min-width: 180px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.58);
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  font: inherit;
+  color: var(--text);
+}
+
+.preset-chip span,
+.preset-chip small {
+  display: block;
+}
+
+.preset-chip span {
+  font-weight: 700;
+}
+
+.preset-chip small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.preset-tag-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(22, 101, 52, 0.15);
+  background: rgba(22, 101, 52, 0.1);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.preset-meta {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.preset-chip.active {
+  border-color: rgba(22, 101, 52, 0.24);
+  background: linear-gradient(135deg, rgba(22, 101, 52, 0.12), rgba(243, 181, 70, 0.14));
+}
+
+.preset-chip.pinned {
+  box-shadow: 0 0 0 1px rgba(22, 101, 52, 0.12) inset;
+}
+
+.preset-chip-actions {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.preset-action {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.66);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.preset-action.active {
+  background: rgba(22, 101, 52, 0.13);
+  border-color: rgba(22, 101, 52, 0.2);
+  color: var(--accent);
+}
+
+.preset-action.danger {
+  color: #a1532f;
+}
+
+.preset-empty {
+  padding: 12px 2px;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .preset-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

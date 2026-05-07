@@ -35,3 +35,47 @@ defineEmits(["refresh", "train"]);
     </div>
   </section>
 </template>
+
+<style scoped lang="scss">
+.hero-panel {
+  margin-top: 0;
+}
+
+.summary-chip-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.summary-chip {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.summary-chip span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.summary-chip strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 16px;
+}
+
+@media (max-width: 900px) {
+  .summary-chip-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .summary-chip-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
