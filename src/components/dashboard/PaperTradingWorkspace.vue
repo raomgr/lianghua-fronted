@@ -664,10 +664,9 @@ const filteredReports = computed(() => {
             <el-input v-model="dailyRunKeyword" size="large" placeholder="搜索备注、报错、步骤名" clearable />
           </label>
         </div>
-        <div class="card-scroll">
+        <div v-if="filteredDailyRuns.length" class="card-scroll">
           <div class="paper-daily-table-wrap">
             <el-table
-              v-if="filteredDailyRuns.length"
               :data="filteredDailyRuns"
               stripe
               row-key="id"
@@ -748,7 +747,9 @@ const filteredReports = computed(() => {
             </el-table>
           </div>
         </div>
-        <el-empty v-if="!filteredDailyRuns.length" description="当前筛选条件下没有命中的日更运行记录。" :image-size="72" />
+        <div v-else class="paper-record-table-wrap paper-empty-wrap">
+          <el-empty description="当前筛选条件下没有命中的日更运行记录。" :image-size="72" />
+        </div>
       </section>
     </div>
 

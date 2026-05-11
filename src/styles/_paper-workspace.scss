@@ -404,6 +404,14 @@
   background: rgba(255, 255, 255, 0.58);
 }
 
+.paper-empty-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  padding: 12px;
+}
+
 .paper-record-table {
   --el-table-header-bg-color: rgba(231, 233, 219, 0.92);
   --el-table-tr-bg-color: rgba(255, 255, 255, 0.78);
