@@ -29,6 +29,9 @@ const props = defineProps({
   paperFillRatio: { type: Number, default: 1.0 },
   paperMaxDrawdownLimit: { type: Number, default: 0.18 },
   paperMaxEquityChangeLimit: { type: Number, default: 0.04 },
+  paperMinSignalReturnPct: { type: Number, default: 0.01 },
+  paperMinLiquidityAmount: { type: Number, default: 30_000_000 },
+  paperMinTurnoverRate: { type: Number, default: 0.002 },
   paperInitialCash: { type: Number, default: 1_000_000 },
   paperLoading: { type: Boolean, default: false },
   paperResetting: { type: Boolean, default: false },
@@ -54,6 +57,9 @@ const emit = defineEmits([
   "update:paperFillRatio",
   "update:paperMaxDrawdownLimit",
   "update:paperMaxEquityChangeLimit",
+  "update:paperMinSignalReturnPct",
+  "update:paperMinLiquidityAmount",
+  "update:paperMinTurnoverRate",
   "update:paperInitialCash",
   "preview",
   "reject-preview",
@@ -79,6 +85,9 @@ const paperParamFields = [
   { key: "paperFillRatio", label: "成交率模拟", min: 0, max: 1, step: 0.05, help: "模拟订单能够真实成交的比例。" },
   { key: "paperMaxDrawdownLimit", label: "最大回撤阈值", min: 0.01, max: 0.8, step: 0.01, help: "组合回撤超过该值时阻断调仓。" },
   { key: "paperMaxEquityChangeLimit", label: "最近权益跌幅阈值", min: 0.01, max: 0.5, step: 0.01, help: "最近一次权益变化跌破该值时阻断调仓。" },
+  { key: "paperMinSignalReturnPct", label: "最低预期收益", min: 0, max: 0.2, step: 0.002, help: "低于该值的买入候选会被直接跳过。" },
+  { key: "paperMinLiquidityAmount", label: "最低成交额", min: 0, max: undefined, step: 5_000_000, help: "成交额低于该阈值且换手偏低时，会被视为流动性不足。" },
+  { key: "paperMinTurnoverRate", label: "最低换手率", min: 0, max: 0.1, step: 0.001, help: "换手率低于该阈值时，会配合成交额一起触发流动性过滤。" },
   { key: "paperInitialCash", label: "重置本金", min: 10000, max: undefined, step: 10000, help: "重置账户时使用的起始资金。" },
 ];
 
@@ -94,6 +103,9 @@ function paperParamValue(key) {
     paperFillRatio: props.paperFillRatio,
     paperMaxDrawdownLimit: props.paperMaxDrawdownLimit,
     paperMaxEquityChangeLimit: props.paperMaxEquityChangeLimit,
+    paperMinSignalReturnPct: props.paperMinSignalReturnPct,
+    paperMinLiquidityAmount: props.paperMinLiquidityAmount,
+    paperMinTurnoverRate: props.paperMinTurnoverRate,
     paperInitialCash: props.paperInitialCash,
   }[key];
 }
@@ -111,6 +123,9 @@ function updatePaperParam(key, value) {
     paperFillRatio: "update:paperFillRatio",
     paperMaxDrawdownLimit: "update:paperMaxDrawdownLimit",
     paperMaxEquityChangeLimit: "update:paperMaxEquityChangeLimit",
+    paperMinSignalReturnPct: "update:paperMinSignalReturnPct",
+    paperMinLiquidityAmount: "update:paperMinLiquidityAmount",
+    paperMinTurnoverRate: "update:paperMinTurnoverRate",
     paperInitialCash: "update:paperInitialCash",
   };
   emit(eventMap[key], nextValue);

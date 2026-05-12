@@ -1,4 +1,4 @@
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import {
   cancelPaperOrder,
   executePaperRebalance,
@@ -33,6 +33,9 @@ export function usePaperState(errorRef) {
   const paperFillRatio = ref(1.0);
   const paperMaxDrawdownLimit = ref(0.18);
   const paperMaxEquityChangeLimit = ref(0.04);
+  const paperMinSignalReturnPct = ref(0.01);
+  const paperMinLiquidityAmount = ref(30_000_000);
+  const paperMinTurnoverRate = ref(0.002);
   const paperInitialCash = ref(1_000_000);
   const paperMessage = ref("");
 
@@ -71,8 +74,34 @@ export function usePaperState(errorRef) {
       fill_ratio: Number(paperFillRatio.value || 1.0),
       max_drawdown_limit: Number(paperMaxDrawdownLimit.value || 0.18),
       max_equity_change_limit: Number(paperMaxEquityChangeLimit.value || 0.04),
+      min_signal_return_pct: Number(paperMinSignalReturnPct.value || 0.01),
+      min_liquidity_amount: Number(paperMinLiquidityAmount.value || 30_000_000),
+      min_turnover_rate: Number(paperMinTurnoverRate.value || 0.002),
     };
   }
+
+  watch(
+    paperDailySettings,
+    (value) => {
+      if (!value) {
+        return;
+      }
+      paperTopN.value = Number(value.top_n ?? 3);
+      paperCapitalFraction.value = Number(value.capital_fraction ?? 0.95);
+      paperMaxPositionWeight.value = Number(value.max_position_weight ?? 0.35);
+      paperMinCashBufferRatio.value = Number(value.min_cash_buffer_ratio ?? 0.05);
+      paperMaxTurnoverRatio.value = Number(value.max_turnover_ratio ?? 1.0);
+      paperStopLossPct.value = Number(value.stop_loss_pct ?? 0.1);
+      paperTakeProfitPct.value = Number(value.take_profit_pct ?? 0.2);
+      paperFillRatio.value = Number(value.fill_ratio ?? 1.0);
+      paperMaxDrawdownLimit.value = Number(value.max_drawdown_limit ?? 0.18);
+      paperMaxEquityChangeLimit.value = Number(value.max_equity_change_limit ?? 0.04);
+      paperMinSignalReturnPct.value = Number(value.min_signal_return_pct ?? 0.01);
+      paperMinLiquidityAmount.value = Number(value.min_liquidity_amount ?? 30_000_000);
+      paperMinTurnoverRate.value = Number(value.min_turnover_rate ?? 0.002);
+    },
+    { immediate: true },
+  );
 
   async function loadPaperAccount() {
     paperLoading.value = true;
@@ -290,6 +319,18 @@ export function usePaperState(errorRef) {
     paperMaxEquityChangeLimit.value = Number(value || 0.04);
   }
 
+  function setPaperMinSignalReturnPct(value) {
+    paperMinSignalReturnPct.value = Number(value || 0.01);
+  }
+
+  function setPaperMinLiquidityAmount(value) {
+    paperMinLiquidityAmount.value = Number(value || 30_000_000);
+  }
+
+  function setPaperMinTurnoverRate(value) {
+    paperMinTurnoverRate.value = Number(value || 0.002);
+  }
+
   return {
     paperSnapshot,
     paperLoading,
@@ -312,6 +353,9 @@ export function usePaperState(errorRef) {
     paperFillRatio,
     paperMaxDrawdownLimit,
     paperMaxEquityChangeLimit,
+    paperMinSignalReturnPct,
+    paperMinLiquidityAmount,
+    paperMinTurnoverRate,
     paperInitialCash,
     paperMessage,
     paperAccount,
@@ -351,5 +395,8 @@ export function usePaperState(errorRef) {
     setPaperFillRatio,
     setPaperMaxDrawdownLimit,
     setPaperMaxEquityChangeLimit,
+    setPaperMinSignalReturnPct,
+    setPaperMinLiquidityAmount,
+    setPaperMinTurnoverRate,
   };
 }

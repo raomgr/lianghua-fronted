@@ -85,6 +85,30 @@ function actionTagType(action) {
   return "info";
 }
 
+function constraintTagType(level) {
+  if (level === "blocked") {
+    return "danger";
+  }
+  if (level === "warning") {
+    return "warning";
+  }
+  return "success";
+}
+
+function portfolioConstraintTagType(level) {
+  if (level === "warning") {
+    return "warning";
+  }
+  return "success";
+}
+
+function dataQualityTagType(level) {
+  if (level === "warning") {
+    return "warning";
+  }
+  return "success";
+}
+
 function reviewTagType(status) {
   if (status === "executed") {
     return "success";
@@ -212,6 +236,17 @@ function quantityDeltaClass(value) {
   return "";
 }
 
+function executableQuantityText(row) {
+  const quantity = Number(row.executable_quantity || 0);
+  if (row.action === "卖出" || row.action === "减仓") {
+    return `${quantity} 股可卖`;
+  }
+  if (row.action === "买入" || row.action === "加仓") {
+    return `${quantity} 股计划执行`;
+  }
+  return "-";
+}
+
 const rebalanceOverviewCards = computed(() => {
   const rows = rebalanceComparisonRows.value;
   const currentPositions = rows.filter((item) => (item.current_quantity || 0) > 0).length;
@@ -223,6 +258,20 @@ const rebalanceOverviewCards = computed(() => {
     { label: "目标持仓数", value: `${targetPositions} 只` },
     { label: "新增仓位", value: `${enteringPositions} 只` },
     { label: "退出仓位", value: `${exitingPositions} 只` },
+  ];
+});
+
+const rebalanceSummaryRows = computed(() => {
+  const summary = props.signalSummary || {};
+  return [
+    {
+      label: "组合变化",
+      value: summary.portfolio_transition_summary || "本次调仓会根据目标组合变化调整当前持仓。",
+    },
+    {
+      label: "板块变化",
+      value: summary.board_shift_summary || "当前没有足够的板块暴露变化说明。",
+    },
   ];
 });
 
@@ -306,6 +355,33 @@ const preTradeChecks = computed(() => {
   ];
 });
 
+const portfolioRiskChecks = computed(() => {
+  if (!props.signalSummary) {
+    return [];
+  }
+  return [
+    { label: "预计换手", value: formatPercent(props.signalSummary.estimated_turnover_ratio, 1) },
+    { label: "仓位完成度", value: formatPercent(props.signalSummary.target_utilization_ratio, 0) },
+    {
+      label: "执行后现金",
+      value: `${formatNumber(props.signalSummary.estimated_cash_after_signal)} / 缓冲 ${formatNumber(props.signalSummary.min_cash_buffer_required)}`,
+    },
+    {
+      label: "主暴露板块",
+      value: props.signalSummary.dominant_board_bucket
+        ? `${props.signalSummary.dominant_board_bucket} ${formatPercent(props.signalSummary.dominant_board_share, 0)}`
+        : "-",
+    },
+    { label: "最大单票", value: formatPercent(props.signalSummary.max_target_position_weight, 1) },
+    { label: "前两大占比", value: formatPercent(props.signalSummary.top_two_target_weight_share, 1) },
+    { label: "有效持仓", value: `${Number(props.signalSummary.effective_holding_count || 0).toFixed(2)} 只` },
+    {
+      label: "板块分布",
+      value: (props.signalSummary.board_exposure_breakdown || []).slice(0, 3).join(" / ") || "-",
+    },
+  ];
+});
+
 const signalQualityDataRows = computed(() => {
   if (!props.signalSummary) {
     return [];
@@ -323,6 +399,18 @@ const signalQualityDataRows = computed(() => {
     { label: "最近同步", value: props.signalSummary.last_sync_at || "-" },
     { label: "信号交易日", value: props.signalSummary.signal_trade_date || "-" },
     { label: "数据状态", value: props.signalSummary.data_status_note || "正常" },
+  ];
+});
+
+const signalQualityCheckItems = computed(() => {
+  if (!props.signalSummary) {
+    return [];
+  }
+  return [
+    { label: "股票池", value: `${props.signalSummary.universe_size || 0} 只` },
+    { label: "候选数", value: `${props.signalSummary.candidate_count || 0} / ${props.signalSummary.top_n || 0}` },
+    { label: "历史K线", value: `${formatNumber(props.signalSummary.total_bars || 0)} 条` },
+    { label: "最近同步", value: props.signalSummary.last_sync_at || "-" },
   ];
 });
 
@@ -448,25 +536,38 @@ const signalQualityLatestOutcome = computed(() => {
   };
 });
 
-const signalQualityReasonCount = computed(
-  () => `${props.signalQualityRecommendation?.reasons?.length || 0} 条`,
-);
-
-const signalQualityReasonSummary = computed(() => {
-  const reasons = props.signalQualityRecommendation?.reasons || [];
-  if (!reasons.length) {
-    return "";
-  }
-  return reasons[0];
+const signalQualityExecutionMode = computed(() => {
+  const level = props.signalQualityGuidance?.level || "observe";
+  const executionMap = {
+    observe: "仅观察，不做真实下单",
+    reduce: "只跟最强样本，降低执行权重",
+    cautious: "只参考强信号，放弃弱信号",
+    watch: "可参考，但保留人工否决",
+    normal: "按正常流程执行",
+  };
+  return executionMap[level] || executionMap.observe;
 });
 
-const signalQualityExecutionRule = computed(
-  () => props.signalQualityGuidance?.executionRule || "先看结论，再结合当天信号强弱做人工复核。",
-);
-
-const signalQualityDecisionLine = computed(
-  () => signalQualityExecutionRule.value || props.signalQualityGuidance?.action || "先看结论，再结合当天信号强弱做人工复核。",
-);
+const signalQualityReasonSummary = computed(() => {
+  const recommendation = props.signalQualityRecommendation || {};
+  const firstReason = recommendation.reasons?.[0] || "";
+  if (!firstReason) {
+    return "-";
+  }
+  if (firstReason.includes("最近已跟踪样本还太少")) {
+    return "最近已跟踪样本不足";
+  }
+  if (firstReason.includes("连续") && firstReason.includes("为负")) {
+    return "最近连续信号偏弱";
+  }
+  if (firstReason.includes("整体跟随效果为负")) {
+    return "最近整体跟随效果偏弱";
+  }
+  if (firstReason.includes("明显低于预期")) {
+    return "最近实际结果低于预期";
+  }
+  return firstReason.replace(/。$/, "");
+});
 
 async function copyChecklist() {
   if (copyMessageTimer) {
@@ -569,6 +670,27 @@ onBeforeUnmount(() => {
           {{ item.value }}
         </el-descriptions-item>
       </el-descriptions>
+      <div class="signal-ep-quality-callout signal-ep-portfolio-risk-callout">
+        <div class="signal-ep-portfolio-risk-header">
+          <span class="signal-ep-portfolio-risk-title">组合风控</span>
+          <el-tag
+            :type="portfolioConstraintTagType(signalSummary?.portfolio_constraint_level)"
+            effect="light"
+            round
+          >
+            {{ signalSummary?.portfolio_constraint_level === "warning" ? "注意" : "正常" }}
+          </el-tag>
+        </div>
+        <div class="signal-ep-portfolio-risk-grid">
+          <div v-for="item in portfolioRiskChecks" :key="item.label" class="signal-ep-portfolio-risk-item">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+        </div>
+        <div class="signal-ep-portfolio-risk-note">
+          {{ signalSummary?.portfolio_constraint_note || "组合层风险约束正常。" }}
+        </div>
+      </div>
     </el-card>
 
     <el-card shadow="never" class="signal-ep-panel">
@@ -593,6 +715,17 @@ onBeforeUnmount(() => {
         <div v-for="item in rebalanceOverviewCards" :key="item.label" class="signal-ep-stat-strip-item">
           <span>{{ item.label }}</span>
           <strong>{{ item.value }}</strong>
+        </div>
+      </div>
+
+      <div class="signal-ep-rebalance-summary">
+        <div
+          v-for="item in rebalanceSummaryRows"
+          :key="item.label"
+          class="signal-ep-rebalance-summary-row"
+        >
+          <span class="signal-ep-rebalance-summary-label">{{ item.label }}</span>
+          <span class="signal-ep-rebalance-summary-value">{{ item.value }}</span>
         </div>
       </div>
 
@@ -630,6 +763,23 @@ onBeforeUnmount(() => {
                   <div class="signal-ep-detail-row" v-if="row.risk_hint">
                     <div class="signal-ep-detail-label">风险提醒</div>
                     <div class="signal-ep-detail-content is-warning">{{ row.risk_hint }}</div>
+                  </div>
+                  <div v-if="row.execution_constraint" class="signal-ep-detail-row">
+                    <div class="signal-ep-detail-label">盘前约束</div>
+                    <div class="signal-ep-detail-content" :class="{ 'is-warning': row.constraint_level !== 'normal' }">
+                      <div>{{ row.execution_constraint }}</div>
+                      <div v-if="row.pretrade_flags?.length" class="signal-constraint-flags">
+                        <el-tag
+                          v-for="flag in row.pretrade_flags"
+                          :key="flag"
+                          size="small"
+                          effect="plain"
+                          :type="constraintTagType(row.constraint_level)"
+                        >
+                          {{ flag }}
+                        </el-tag>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -779,6 +929,23 @@ onBeforeUnmount(() => {
                     <div class="signal-ep-detail-label">风险提醒</div>
                     <div class="signal-ep-detail-content is-warning">{{ row.risk_hint }}</div>
                   </div>
+                  <div v-if="row.execution_constraint" class="signal-ep-detail-row">
+                    <div class="signal-ep-detail-label">盘前约束</div>
+                    <div class="signal-ep-detail-content" :class="{ 'is-warning': row.constraint_level !== 'normal' }">
+                      <div>{{ row.execution_constraint }}</div>
+                      <div v-if="row.pretrade_flags?.length" class="signal-constraint-flags">
+                        <el-tag
+                          v-for="flag in row.pretrade_flags"
+                          :key="flag"
+                          size="small"
+                          effect="plain"
+                          :type="constraintTagType(row.constraint_level)"
+                        >
+                          {{ flag }}
+                        </el-tag>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </template>
@@ -810,6 +977,16 @@ onBeforeUnmount(() => {
           <el-table-column label="预期5日收益" min-width="120">
             <template #default="{ row }">
               {{ formatPercent(row.predicted_return_5d) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="盘前检查" min-width="220" show-overflow-tooltip>
+            <template #default="{ row }">
+              <div class="signal-constraint-cell">
+                <el-tag :type="constraintTagType(row.constraint_level)" effect="light" size="small">
+                  {{ row.constraint_level === "blocked" ? "受限" : row.constraint_level === "warning" ? "注意" : "正常" }}
+                </el-tag>
+                <span>{{ row.execution_constraint || executableQuantityText(row) }}</span>
+              </div>
             </template>
           </el-table-column>
           <el-table-column label="信号解释" min-width="280" show-overflow-tooltip>
@@ -972,29 +1149,35 @@ onBeforeUnmount(() => {
       </template>
 
       <div class="signal-ep-quality-recommendation" :class="`is-${signalQualityRecommendation.level || 'observe'}`">
-        <div class="signal-ep-quality-summary-grid">
-          <div class="signal-ep-quality-summary-item">
-            <span class="signal-ep-quality-summary-label">当前建议</span>
-            <strong class="signal-ep-quality-summary-value">{{ signalQualityRecommendation.label || "继续观察" }}</strong>
+        <div class="signal-ep-quality-statusbar">
+          <div class="signal-ep-quality-statusitem signal-ep-quality-statusitem-primary">
+            <span class="signal-ep-quality-summary-row-label">当前建议</span>
+            <strong class="signal-ep-quality-summary-row-value">{{ signalQualityRecommendation.label || "继续观察" }}</strong>
           </div>
-          <div class="signal-ep-quality-summary-item">
-            <span class="signal-ep-quality-summary-label">参考权重</span>
-            <strong class="signal-ep-quality-summary-value">{{ signalQualityGuidance?.referenceWeight || "-" }}</strong>
-          </div>
-          <div class="signal-ep-quality-summary-item">
-            <span class="signal-ep-quality-summary-label">触发因子</span>
-            <strong class="signal-ep-quality-summary-value">{{ signalQualityReasonCount }}</strong>
-          </div>
-        </div>
-        <div class="signal-ep-quality-summary-list">
-          <div class="signal-ep-quality-summary-row">
+          <div class="signal-ep-quality-statusitem">
             <span class="signal-ep-quality-summary-row-label">今日执行</span>
-            <strong class="signal-ep-quality-summary-row-value">{{ signalQualityDecisionLine }}</strong>
+            <strong class="signal-ep-quality-summary-row-value">{{ signalQualityExecutionMode }}</strong>
           </div>
-          <div v-if="signalQualityReasonSummary" class="signal-ep-quality-summary-row">
+          <div class="signal-ep-quality-statusitem">
+            <span class="signal-ep-quality-summary-row-label">参考权重</span>
+            <strong class="signal-ep-quality-summary-row-value">{{ signalQualityGuidance?.referenceWeight || "-" }}</strong>
+          </div>
+          <div class="signal-ep-quality-statusitem signal-ep-quality-statusitem-reason">
             <span class="signal-ep-quality-summary-row-label">触发原因</span>
             <strong class="signal-ep-quality-summary-row-value">{{ signalQualityReasonSummary }}</strong>
           </div>
+        </div>
+      </div>
+
+      <div class="signal-ep-quality-callout signal-ep-quality-data-callout">
+        <div class="signal-ep-quality-data-header">
+          <span class="signal-ep-quality-data-title">数据质量检查</span>
+          <el-tag :type="dataQualityTagType(signalSummary?.data_quality_level)" effect="light" size="small">
+            {{ signalSummary?.data_quality_level === "warning" ? "注意" : "正常" }}
+          </el-tag>
+        </div>
+        <div class="signal-ep-quality-callout-body">
+          <strong>{{ signalSummary?.data_quality_note || "最近同步和信号生成状态正常。" }}</strong>
         </div>
       </div>
 
@@ -1007,14 +1190,14 @@ onBeforeUnmount(() => {
                 {{ row.totalSignals }}
               </template>
             </el-table-column>
-            <el-table-column label="已执行 / 采纳率" min-width="150">
+            <el-table-column label="采纳率" min-width="100">
               <template #default="{ row }">
-                {{ row.executedSignals }} / {{ formatPercent(row.adoptionRate, 1) }}
+                {{ formatPercent(row.adoptionRate, 1) }}
               </template>
             </el-table-column>
-            <el-table-column label="已跟踪 / 跟踪率" min-width="150">
+            <el-table-column label="跟踪率" min-width="100">
               <template #default="{ row }">
-                {{ row.trackedSignals }} / {{ formatPercent(row.trackingRate, 1) }}
+                {{ formatPercent(row.trackingRate, 1) }}
               </template>
             </el-table-column>
             <el-table-column label="平均预期收益" min-width="120">
@@ -1036,33 +1219,18 @@ onBeforeUnmount(() => {
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="正向占比" min-width="120">
-              <template #default="{ row }">
-                {{
-                  row.trackedSignals
-                    ? formatPercent(row.positiveTrackedSignals / row.trackedSignals, 1)
-                    : "-"
-                }}
-              </template>
-            </el-table-column>
-            <el-table-column label="覆盖成交金额" min-width="130">
-              <template #default="{ row }">
-                {{ formatNumber(row.totalTrackedNotional) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="实际买入 / 卖出" min-width="180">
-              <template #default="{ row }">
-                {{ formatNumber(row.executedBuyAmount) }} / {{ formatNumber(row.executedSellAmount) }}
-              </template>
-            </el-table-column>
           </el-table>
         </div>
 
         <el-tabs v-model="activeQualityTab" class="signal-ep-quality-tabs">
-          <el-tab-pane label="数据基础" name="context">
-            <div class="signal-ep-quality-slice-tip">
-              先确认这次评估基于什么数据、最近一次已跟踪样本表现如何，再决定是否继续参考这套信号。
+          <el-tab-pane label="数据" name="context">
+            <div class="signal-ep-quality-context-strip">
+              <div v-for="item in signalQualityCheckItems" :key="item.label" class="signal-ep-quality-context-item">
+                <span>{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+              </div>
             </div>
+
             <el-descriptions
               :column="4"
               border
@@ -1085,12 +1253,15 @@ onBeforeUnmount(() => {
                 </div>
               </el-descriptions-item>
             </el-descriptions>
+            <div v-if="signalSummary?.data_quality_checks?.length" class="signal-ep-quality-data-checks">
+              <div class="signal-ep-quality-data-checks-title">检测项</div>
+              <ul>
+                <li v-for="item in signalSummary.data_quality_checks" :key="item">{{ item }}</li>
+              </ul>
+            </div>
           </el-tab-pane>
 
-          <el-tab-pane label="采纳差异" name="adoption">
-            <div class="signal-ep-quality-slice-tip">
-              这里只比较最近 20 次里不同状态样本的数量、平均预期和已执行后的真实跟随效果，不伪造未采纳样本的事后收益。
-            </div>
+          <el-tab-pane label="采纳" name="adoption">
             <div v-if="signalAdoptionComparison.rows?.length" class="signal-ep-table-wrap">
               <el-table :data="signalAdoptionComparison.rows" stripe class="signal-ep-table signal-ep-mini-table">
                 <el-table-column prop="label" label="状态" min-width="100" />
@@ -1112,20 +1283,17 @@ onBeforeUnmount(() => {
               </el-table>
             </div>
             <div class="signal-ep-quality-callout">
-              <div class="signal-ep-quality-callout-title">最近 20 次采纳差异</div>
               <div class="signal-ep-quality-callout-body">
                 <strong>
                   已采纳平均预期
                   {{ signalAdoptionComparison.executedAdvantage >= 0 ? "高于" : "低于" }}
                   已忽略 {{ formatPercent(Math.abs(signalAdoptionComparison.executedAdvantage)) }}
                 </strong>
-                <span>用来判断你最近是在执行更强的信号，还是忽略了本该执行的样本。</span>
               </div>
             </div>
           </el-tab-pane>
 
-          <el-tab-pane label="按交易日看" name="trade-date">
-            <div class="signal-ep-quality-slice-tip">判断是不是某几天整体信号偏弱，避免把日内问题误当成策略整体失效。</div>
+          <el-tab-pane label="交易日" name="trade-date">
             <div v-if="signalQualityByTradeDate.length" class="signal-ep-table-wrap">
               <el-table :data="signalQualityByTradeDate" stripe class="signal-ep-table signal-ep-mini-table">
                 <el-table-column prop="tradeDate" label="交易日" min-width="120" />
@@ -1154,8 +1322,7 @@ onBeforeUnmount(() => {
             <el-empty v-else description="还没有足够的交易日样本。" :image-size="56" />
           </el-tab-pane>
 
-          <el-tab-pane label="按模型看" name="model">
-            <div class="signal-ep-quality-slice-tip">判断最近一段时间究竟是哪种模型更稳定，还是只是冠军模型在不同阶段切换。</div>
+          <el-tab-pane label="模型" name="model">
             <div v-if="signalQualityByModel.length" class="signal-ep-table-wrap">
               <el-table :data="signalQualityByModel" stripe class="signal-ep-table signal-ep-mini-table">
                 <el-table-column prop="modelName" label="模型" min-width="150" />

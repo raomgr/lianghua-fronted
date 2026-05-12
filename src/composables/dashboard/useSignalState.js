@@ -295,15 +295,37 @@ export function useSignalState(errorRef) {
     const latestFive = signalQualityWindows.value[0] || null;
     const latestTen = signalQualityWindows.value[1] || null;
     const momentum = signalQualityMomentum.value;
+    const summary = latestSignalSummary.value || null;
     const reasons = [];
+    const dedupeReasons = (items) => Array.from(new Set(items.filter(Boolean)));
+    const severeDataIssue =
+      summary &&
+      (Number(summary.candidate_count || 0) <= 0 ||
+        Number(summary.universe_size || 0) <= 0 ||
+        (summary.data_quality_checks || []).some((item) =>
+          ["股票池为空", "历史K线为空", "候选数量不足", "同步日期早于信号交易日"].includes(item),
+        ));
 
     if ((momentum.trackedSignals || 0) < 3) {
-      reasons.push("最近已跟踪样本还太少，先把它当成观察信号，不要过度放大结论。");
+      reasons.push("最近已跟踪样本还太少，先把它当成观察信号。");
+      if (summary?.data_quality_level === "warning" && summary?.data_quality_note) {
+        reasons.push(summary.data_quality_note);
+      }
       return {
         level: "observe",
         label: "继续观察",
         shortLabel: "样本不足",
-        reasons,
+        reasons: dedupeReasons(reasons),
+      };
+    }
+
+    if (severeDataIssue) {
+      reasons.push(summary?.data_quality_note || "当前数据基础不足，先不要直接把信号当成真实下单依据。");
+      return {
+        level: "observe",
+        label: "继续观察",
+        shortLabel: "数据不足",
+        reasons: dedupeReasons(reasons),
       };
     }
 
@@ -319,13 +341,19 @@ export function useSignalState(errorRef) {
     if ((latestFive?.weightedFollowThrough || 0) < 0 && (latestFive?.trackingRate || 0) >= 0.5) {
       reasons.push("最近 5 次里已有足够跟踪样本，但短期结果仍然偏弱。");
     }
+    if (summary?.data_quality_level === "warning" && summary?.data_quality_note) {
+      reasons.push(summary.data_quality_note);
+    }
+    if (summary?.portfolio_constraint_level === "warning" && summary?.portfolio_constraint_note) {
+      reasons.push(summary.portfolio_constraint_note);
+    }
 
     if (reasons.length >= 2) {
       return {
         level: "reduce",
         label: "降低参考权重",
         shortLabel: "短期偏弱",
-        reasons,
+        reasons: dedupeReasons(reasons),
       };
     }
 
@@ -334,7 +362,7 @@ export function useSignalState(errorRef) {
         level: "cautious",
         label: "谨慎参考",
         shortLabel: "需要观察",
-        reasons,
+        reasons: dedupeReasons(reasons),
       };
     }
 
@@ -353,33 +381,39 @@ export function useSignalState(errorRef) {
       level: positiveReasons.length >= 2 ? "normal" : "watch",
       label: positiveReasons.length >= 2 ? "可正常参考" : "继续正常参考",
       shortLabel: positiveReasons.length >= 2 ? "状态稳定" : "轻度观察",
-      reasons: positiveReasons.length
+      reasons: dedupeReasons(
+        positiveReasons.length
         ? positiveReasons
         : ["最近没有明显失效迹象，可以继续参考，但仍建议保留人工复核。"],
+      ),
     };
   });
   const signalQualityGuidance = computed(() => {
     const recommendation = signalQualityRecommendation.value || {};
     const level = recommendation.level || "observe";
+    const summary = latestSignalSummary.value || {};
 
     const guidanceMap = {
       observe: {
         modeLabel: "仅观察",
         referenceWeight: "0% - 30%",
         action: "先观察，不建议直接按信号做真实下单决策。",
-        executionRule: "今天只看信号变化，不做真实执行；等样本再积累几次后再恢复参考。",
+        executionRule:
+          Number(summary.candidate_count || 0) > 0
+            ? "今天只看信号变化，不做真实执行；等样本或数据质量恢复后再恢复参考。"
+            : "今天不做真实执行，先确认数据同步、股票池和候选生成是否正常。",
       },
       reduce: {
         modeLabel: "降低权重",
         referenceWeight: "30% - 50%",
-        action: "最近信号偏弱，建议降低参考权重，只保留最强样本做人工复核。",
-        executionRule: "只参考最强的 1 - 2 只信号，仓位减半；其余样本只做观察记录。",
+        action: "最近信号偏弱或组合约束偏紧，建议降低参考权重，只保留最强样本做人工复核。",
+        executionRule: "只参考最强的 1 - 2 只信号，降低单次执行力度；其余样本只做观察记录。",
       },
       cautious: {
         modeLabel: "谨慎参考",
         referenceWeight: "50% - 70%",
         action: "可以继续看，但建议缩小参考范围，只挑更强的信号。",
-        executionRule: "优先看排名最前的信号，并提高人工筛选标准；弱信号可以直接跳过。",
+        executionRule: "优先看排名最前的信号，并先确认组合风控和盘前约束；弱信号可以直接跳过。",
       },
       watch: {
         modeLabel: "继续观察",

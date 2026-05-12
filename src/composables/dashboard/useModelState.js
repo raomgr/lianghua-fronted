@@ -1,5 +1,5 @@
 import { computed, ref } from "vue";
-import { triggerModelTrain } from "../../services/model";
+import { fetchModelTrainJob, triggerModelTrain } from "../../services/model";
 
 export function useModelState(errorRef, onTrained) {
   const modelStatus = ref(null);
@@ -21,7 +21,23 @@ export function useModelState(errorRef, onTrained) {
     lastTrainMessage.value = "";
 
     try {
-      const result = await triggerModelTrain();
+      const job = await triggerModelTrain();
+      lastTrainMessage.value = job.message || "训练任务已创建，正在后台执行。";
+
+      let latestJob = job;
+      while (latestJob?.job_id && ["queued", "running"].includes(String(latestJob.status || ""))) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        latestJob = await fetchModelTrainJob(latestJob.job_id);
+        if (latestJob?.message) {
+          lastTrainMessage.value = latestJob.message;
+        }
+      }
+
+      if (latestJob?.status !== "succeeded" || !latestJob?.result) {
+        throw new Error(latestJob?.error || latestJob?.message || "训练任务失败");
+      }
+
+      const result = latestJob.result;
       lastTrainMessage.value = `${result.model_name} 已成为当前主模型，验证 IC ${result.validation_ic.toFixed(4)}`;
       await onTrained();
     } catch (err) {

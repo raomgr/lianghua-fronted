@@ -30,6 +30,9 @@ const paperProps = computed(() => ({
   paperFillRatio: dashboard.paperFillRatio,
   paperMaxDrawdownLimit: dashboard.paperMaxDrawdownLimit,
   paperMaxEquityChangeLimit: dashboard.paperMaxEquityChangeLimit,
+  paperMinSignalReturnPct: dashboard.paperMinSignalReturnPct,
+  paperMinLiquidityAmount: dashboard.paperMinLiquidityAmount,
+  paperMinTurnoverRate: dashboard.paperMinTurnoverRate,
   paperInitialCash: dashboard.paperInitialCash,
   paperLoading: dashboard.paperLoading,
   paperResetting: dashboard.paperResetting,
@@ -65,6 +68,9 @@ const paperProps = computed(() => ({
       @update:paper-fill-ratio="dashboard.setPaperFillRatio"
       @update:paper-max-drawdown-limit="dashboard.setPaperMaxDrawdownLimit"
       @update:paper-max-equity-change-limit="dashboard.setPaperMaxEquityChangeLimit"
+      @update:paper-min-signal-return-pct="dashboard.setPaperMinSignalReturnPct"
+      @update:paper-min-liquidity-amount="dashboard.setPaperMinLiquidityAmount"
+      @update:paper-min-turnover-rate="dashboard.setPaperMinTurnoverRate"
       @update:paper-initial-cash="dashboard.setPaperInitialCash"
       @preview="dashboard.handlePreviewPaperRebalance"
       @reject-preview="dashboard.handleRejectPaperPreview"

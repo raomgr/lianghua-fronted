@@ -23,3 +23,7 @@ export function fetchPredictions() {
 export function triggerModelTrain() {
   return http.post("/api/model/train");
 }
+
+export function fetchModelTrainJob(jobId) {
+  return http.get(`/api/model/train/${jobId}`);
+}
