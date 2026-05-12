@@ -777,6 +777,20 @@
   color: #9a3412;
 }
 
+.signal-ep-inline-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.signal-ep-inline-note {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
 .signal-constraint-flags {
   display: flex;
   flex-wrap: wrap;
@@ -794,6 +808,22 @@
 .signal-constraint-cell span {
   min-width: 0;
   font-size: 14px;
+  line-height: 1.5;
+}
+
+.signal-ep-name-cell {
+  display: grid;
+  gap: 4px;
+}
+
+.signal-ep-name-cell strong {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.signal-ep-name-meta {
+  color: var(--muted);
+  font-size: 12px;
   line-height: 1.5;
 }
 

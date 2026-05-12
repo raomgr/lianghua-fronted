@@ -38,6 +38,11 @@ const chartEnd = computed(() => props.visibleHistory.at(-1)?.trade_date ?? "");
           <h2 v-if="selectedStock" class="detail-title">
             {{ selectedStock.name }} <span>{{ selectedStock.symbol }}</span>
           </h2>
+          <div v-if="selectedStock" class="detail-meta">
+            <span v-if="selectedStock.industry">{{ selectedStock.industry }}</span>
+            <span v-if="selectedStock.market">{{ selectedStock.market }}</span>
+            <span v-if="selectedStock.area">{{ selectedStock.area }}</span>
+          </div>
         </div>
         <div class="detail-toolbar">
           <div v-if="selectedStock" class="toolbar-switches">
@@ -210,6 +215,22 @@ const chartEnd = computed(() => props.visibleHistory.at(-1)?.trade_date ?? "");
   color: var(--muted);
   font-size: 16px;
   font-weight: 500;
+}
+
+.detail-meta {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.detail-meta span {
+  border: 1px solid rgba(20, 108, 67, 0.12);
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  padding: 4px 10px;
 }
 
 .detail-badge {

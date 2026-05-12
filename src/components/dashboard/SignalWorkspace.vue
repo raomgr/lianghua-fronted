@@ -44,6 +44,41 @@ function formatPrice(value) {
   return Number(value || 0).toFixed(2);
 }
 
+function formatMarketCap(value) {
+  const amount = Number(value || 0);
+  if (!amount) {
+    return "-";
+  }
+  if (amount >= 100_000_000_000) {
+    return `${(amount / 100_000_000_000).toFixed(2)} 千亿`;
+  }
+  if (amount >= 100_000_000) {
+    return `${(amount / 100_000_000).toFixed(2)} 亿`;
+  }
+  if (amount >= 10_000) {
+    return `${(amount / 10_000).toFixed(0)} 万`;
+  }
+  return formatNumber(amount);
+}
+
+function compactProfileTags(row) {
+  return [row.industry, row.market, row.area].filter(Boolean);
+}
+
+function compactValuationText(row) {
+  const parts = [];
+  if (row.total_mv) {
+    parts.push(`总市值 ${formatMarketCap(row.total_mv)}`);
+  }
+  if (row.pe_ttm) {
+    parts.push(`PE(TTM) ${Number(row.pe_ttm).toFixed(2)}`);
+  }
+  if (row.pb) {
+    parts.push(`PB ${Number(row.pb).toFixed(2)}`);
+  }
+  return parts.join(" · ");
+}
+
 function formatTargetStocks(symbols = [], names = []) {
   return symbols
     .map((symbol, index) => {
@@ -749,6 +784,28 @@ onBeforeUnmount(() => {
                     <div class="signal-ep-detail-label">替换关系</div>
                     <div class="signal-ep-detail-content">{{ row.replacement_hint }}</div>
                   </div>
+                  <div
+                    v-if="compactProfileTags(row).length || compactValuationText(row)"
+                    class="signal-ep-detail-row"
+                  >
+                    <div class="signal-ep-detail-label">股票画像</div>
+                    <div class="signal-ep-detail-content">
+                      <div v-if="compactProfileTags(row).length" class="signal-ep-inline-tags">
+                        <el-tag
+                          v-for="item in compactProfileTags(row)"
+                          :key="`${row.symbol}-rebalance-${item}`"
+                          size="small"
+                          effect="plain"
+                          round
+                        >
+                          {{ item }}
+                        </el-tag>
+                      </div>
+                      <div v-if="compactValuationText(row)" class="signal-ep-inline-note">
+                        {{ compactValuationText(row) }}
+                      </div>
+                    </div>
+                  </div>
                   <div class="signal-ep-detail-row">
                     <div class="signal-ep-detail-label">信号位置</div>
                     <div class="signal-ep-detail-content">
@@ -791,7 +848,16 @@ onBeforeUnmount(() => {
             </template>
           </el-table-column>
           <el-table-column prop="symbol" label="代码" min-width="110" />
-          <el-table-column prop="name" label="名称" min-width="130" />
+          <el-table-column prop="name" label="名称" min-width="180">
+            <template #default="{ row }">
+              <div class="signal-ep-name-cell">
+                <strong>{{ row.name }}</strong>
+                <div v-if="compactProfileTags(row).length" class="signal-ep-name-meta">
+                  {{ compactProfileTags(row).join(" · ") }}
+                </div>
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column label="执行前" min-width="220" label-class-name="signal-ep-group-before">
             <el-table-column prop="current_quantity" label="持仓" min-width="110" class-name="signal-ep-col-before" label-class-name="signal-ep-col-before">
               <template #default="{ row }">
@@ -918,6 +984,28 @@ onBeforeUnmount(() => {
                     <div class="signal-ep-detail-label">替换关系</div>
                     <div class="signal-ep-detail-content">{{ row.replacement_hint }}</div>
                   </div>
+                  <div
+                    v-if="compactProfileTags(row).length || compactValuationText(row)"
+                    class="signal-ep-detail-row"
+                  >
+                    <div class="signal-ep-detail-label">股票画像</div>
+                    <div class="signal-ep-detail-content">
+                      <div v-if="compactProfileTags(row).length" class="signal-ep-inline-tags">
+                        <el-tag
+                          v-for="item in compactProfileTags(row)"
+                          :key="`${row.symbol}-${item}`"
+                          size="small"
+                          effect="plain"
+                          round
+                        >
+                          {{ item }}
+                        </el-tag>
+                      </div>
+                      <div v-if="compactValuationText(row)" class="signal-ep-inline-note">
+                        {{ compactValuationText(row) }}
+                      </div>
+                    </div>
+                  </div>
                   <div v-if="row.comparison_hint || (row.rank && row.rank < 999)" class="signal-ep-detail-row">
                     <div class="signal-ep-detail-label">信号位置</div>
                     <div class="signal-ep-detail-content">
@@ -956,7 +1044,16 @@ onBeforeUnmount(() => {
             </template>
           </el-table-column>
           <el-table-column prop="symbol" label="代码" min-width="110" />
-          <el-table-column prop="name" label="名称" min-width="130" />
+          <el-table-column prop="name" label="名称" min-width="180">
+            <template #default="{ row }">
+              <div class="signal-ep-name-cell">
+                <strong>{{ row.name }}</strong>
+                <div v-if="compactProfileTags(row).length" class="signal-ep-name-meta">
+                  {{ compactProfileTags(row).join(" · ") }}
+                </div>
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column label="当前价" min-width="100">
             <template #default="{ row }">
               {{ row.last_price ? formatPrice(row.last_price) : "-" }}
@@ -977,6 +1074,11 @@ onBeforeUnmount(() => {
           <el-table-column label="预期5日收益" min-width="120">
             <template #default="{ row }">
               {{ formatPercent(row.predicted_return_5d) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="估值/市值" min-width="220" show-overflow-tooltip>
+            <template #default="{ row }">
+              {{ compactValuationText(row) || "-" }}
             </template>
           </el-table-column>
           <el-table-column label="盘前检查" min-width="220" show-overflow-tooltip>
@@ -1572,10 +1674,24 @@ onBeforeUnmount(() => {
         <el-table :data="signalTopCandidates" stripe class="signal-ep-table" :max-height="320">
           <el-table-column prop="rank" label="排名" min-width="80" />
           <el-table-column prop="symbol" label="代码" min-width="110" />
-          <el-table-column prop="name" label="名称" min-width="140" />
+          <el-table-column prop="name" label="名称" min-width="180">
+            <template #default="{ row }">
+              <div class="signal-ep-name-cell">
+                <strong>{{ row.name }}</strong>
+                <div v-if="compactProfileTags(row).length" class="signal-ep-name-meta">
+                  {{ compactProfileTags(row).join(" · ") }}
+                </div>
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column label="当前价" min-width="100">
             <template #default="{ row }">
               {{ row.last_price ? formatPrice(row.last_price) : "-" }}
+            </template>
+          </el-table-column>
+          <el-table-column label="估值/市值" min-width="220" show-overflow-tooltip>
+            <template #default="{ row }">
+              {{ compactValuationText(row) || "-" }}
             </template>
           </el-table-column>
           <el-table-column label="预期5日收益" min-width="130">
