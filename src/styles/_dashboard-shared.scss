@@ -1,5 +1,5 @@
 .compare-card {
-  border-radius: 20px;
+  border-radius: 8px;
   padding: 18px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.55);
@@ -59,11 +59,11 @@
 }
 
 .chart-frame {
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  background: rgba(255, 250, 243, 0.78);
-  box-shadow: var(--shadow);
-  padding: 20px 24px 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(32, 43, 35, 0.06);
+  background: rgba(255, 253, 249, 0.7);
+  box-shadow: none;
+  padding: 18px 20px 20px;
 }
 
 .echart-shell {
@@ -85,7 +85,7 @@
 .history-chart-frame {
   margin-top: 12px;
   margin-bottom: 12px;
-  padding: 12px 14px 14px;
+  padding: 10px 12px 12px;
 }
 
 .history-chart-legend {
@@ -104,10 +104,11 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.6);
+  border: 0;
+  border-bottom: 1px solid rgba(32, 43, 35, 0.12);
+  border-radius: 0;
+  padding: 0 0 6px;
+  background: transparent;
 }
 
 .history-actions {
@@ -154,15 +155,15 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .model-summary-grid > div,
 .model-summary-grid > label {
-  border-radius: 18px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.5);
+  border-radius: 0;
+  padding: 10px 0 12px;
+  border: 0;
+  background: transparent;
   min-width: 0;
 }
 
@@ -186,12 +187,12 @@
 .universe-input {
   width: 100%;
   margin-top: 8px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  border: 1px solid rgba(32, 43, 35, 0.1);
+  border-radius: 8px;
   padding: 10px 12px;
   font: inherit;
   color: var(--text);
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.86);
 }
 
 .model-summary-grid .el-input,
@@ -204,7 +205,7 @@
 
 .model-summary-grid .el-input-number {
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 0 0 1px rgba(32, 43, 35, 0.1) inset;
 }
@@ -214,14 +215,14 @@
 .model-summary-grid .el-select__wrapper,
 .model-summary-grid .el-date-editor.el-input__wrapper {
   background: rgba(255, 255, 255, 0.82);
-  border-radius: 14px;
+  border-radius: 8px;
   box-shadow: 0 0 0 1px rgba(32, 43, 35, 0.1) inset;
   min-height: 46px;
 }
 
 .model-summary-grid .el-input-number .el-input__wrapper {
   background: transparent;
-  border-radius: 14px;
+  border-radius: 8px;
   box-shadow: none;
   padding-right: 40px;
 }
@@ -326,10 +327,11 @@
   grid-template-columns: 1fr auto auto;
   gap: 12px;
   align-items: center;
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid var(--line);
+  padding: 12px 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(32, 43, 35, 0.08);
   font-size: 0.92rem;
 }
 

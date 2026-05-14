@@ -165,11 +165,12 @@ export function useDashboard() {
 
       const nextSymbol = researchState.selectedSymbol.value || stocks.value[0]?.symbol || "";
       if (nextSymbol) {
+        researchState.selectedSymbol.value = nextSymbol;
         try {
           const history = await fetchStockHistory(nextSymbol, { limit: 240 });
-          researchState.selectedSymbol.value = nextSymbol;
           researchState.selectedHistory.value = history;
         } catch (historyError) {
+          researchState.selectedHistory.value = [];
           warnings.push(`个股历史失败：${getErrorMessage(historyError)}`);
         }
       }

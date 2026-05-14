@@ -1,6 +1,5 @@
 <script setup>
 import StockResearchSection from "../../components/dashboard/StockResearchSection.vue";
-import StockTablePanel from "../../components/dashboard/StockTablePanel.vue";
 import { useDashboardContext } from "../../composables/useDashboardContext";
 
 const dashboard = useDashboardContext();
@@ -19,6 +18,8 @@ const dashboard = useDashboardContext();
     <p v-if="dashboard.error" class="subtle-caption">部分接口更新失败：{{ dashboard.error }}</p>
 
     <StockResearchSection
+      :stocks="dashboard.stocks"
+      :selected-symbol="dashboard.selectedSymbol"
       :selected-stock="dashboard.selectedStock"
       :visible-history="dashboard.visibleHistory"
       :selected-history-stats="dashboard.selectedHistoryStats"
@@ -26,22 +27,20 @@ const dashboard = useDashboardContext();
       :selected-history-range="dashboard.selectedHistoryRange"
       :selected-chart-mode="dashboard.selectedChartMode"
       :selected-indicator="dashboard.selectedIndicator"
+      :selected-price-basis="dashboard.selectedPriceBasis"
       :history-range-options="dashboard.historyRangeOptions"
       :chart-mode-options="dashboard.chartModeOptions"
       :indicator-options="dashboard.indicatorOptions"
+      :price-basis-options="dashboard.priceBasisOptions"
       :top-prediction="dashboard.topPrediction"
       :predictions="dashboard.predictions"
       :latest-rebalance="dashboard.latestRebalance"
       :rebalances="dashboard.backtest.rebalances"
+      @select="dashboard.loadStockHistory"
       @update:selected-history-range="dashboard.setSelectedHistoryRange"
       @update:selected-chart-mode="dashboard.setSelectedChartMode"
       @update:selected-indicator="dashboard.setSelectedIndicator"
-    />
-
-    <StockTablePanel
-      :stocks="dashboard.stocks"
-      :selected-symbol="dashboard.selectedSymbol"
-      @select="dashboard.loadStockHistory"
+      @update:selected-price-basis="dashboard.setSelectedPriceBasis"
     />
   </template>
 </template>

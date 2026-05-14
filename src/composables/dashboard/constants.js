@@ -18,6 +18,7 @@ export const INDICATOR_OPTIONS = [
 ];
 
 export const DEFAULT_BACKTEST_CONTROLS = {
+  backtest_mode: "rule",
   rebalance_days: 5,
   top_n: 3,
   trading_cost_bps: 8,

@@ -103,6 +103,13 @@ export function useSignalState(errorRef) {
       ),
     };
   });
+
+  function fixedSignalOutcome(item, horizon = 5) {
+    const raw = item?.signal_outcome?.[`avg_forward_return_${horizon}d`];
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : null;
+  }
+
   function buildSignalQualitySlice(label, sample) {
     const executedRows = sample.filter((item) => item.review_status === "executed");
     const ignoredRows = sample.filter((item) => item.review_status === "ignored");
@@ -165,7 +172,7 @@ export function useSignalState(errorRef) {
     const rows = signalHistory.value || [];
     const groups = new Map();
     rows.forEach((item) => {
-      const tradeDate = String(item.trade_date || item.generated_at || "").slice(0, 10) || "未知";
+      const tradeDate = String(item.signal_trade_date || item.generated_at || "").slice(0, 10) || "未知";
       if (!groups.has(tradeDate)) {
         groups.set(tradeDate, []);
       }
@@ -246,18 +253,23 @@ export function useSignalState(errorRef) {
     (signalHistory.value || [])
       .filter(
         (item) =>
-          item.review_status === "executed" && Number(item.review_performance?.priced_items_count || 0) > 0,
+          fixedSignalOutcome(item, 5) !== null ||
+          (item.review_status === "executed" && Number(item.review_performance?.priced_items_count || 0) > 0),
       )
       .map((item) => {
-        const actual = Number(item.review_performance?.weighted_post_trade_move || 0);
+        const actual = fixedSignalOutcome(item, 5) ?? Number(item.review_performance?.weighted_post_trade_move || 0);
         const expected = Number(item.avg_predicted_return_5d || 0);
         return {
           modelRunId: item.model_run_id,
           generatedAt: item.generated_at,
+          signalTradeDate: item.signal_trade_date,
           actual,
           expected,
           gap: actual - expected,
-          trackedNotional: Number(item.review_performance?.tracked_notional || 0),
+          trackedNotional:
+            Number(item.review_performance?.tracked_notional || 0) ||
+            Number(item.signal_outcome?.tracked_symbols_5d || 0),
+          outcomeSource: fixedSignalOutcome(item, 5) !== null ? "signal_outcome_5d" : "executed_follow_through",
           outcome: actual > 0 ? "positive" : actual < 0 ? "negative" : "flat",
         };
       }),

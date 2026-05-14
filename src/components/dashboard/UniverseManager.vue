@@ -38,7 +38,6 @@ const universeInputModel = computed({
     <div class="section-head compact-head">
       <div>
         <div class="section-title">自定义股票池</div>
-        <p class="subtle-caption">先搜索加入，批量代码作为补充输入。</p>
       </div>
       <div class="status-pill">已选 {{ customUniverseItems.length }} 只</div>
     </div>
@@ -71,7 +70,7 @@ const universeInputModel = computed({
             </button>
           </div>
         </div>
-        <div v-else class="compact-empty">输入股票名称或代码后，在这里查看结果。</div>
+        <div v-else class="compact-empty">暂无结果</div>
       </section>
 
       <section class="universe-column workspace-card">
@@ -86,14 +85,13 @@ const universeInputModel = computed({
             <button class="secondary-button" @click="$emit('remove', item.symbol)">移除</button>
           </div>
         </div>
-        <div v-else class="compact-empty">暂无股票，搜索后点“加入”即可。</div>
+        <div v-else class="compact-empty">暂无股票</div>
       </section>
     </div>
 
     <div class="manual-entry">
       <div class="section-head inline-head">
         <div class="section-title sub-title">批量粘贴代码</div>
-        <span class="subtle-caption">支持换行、逗号、分号</span>
       </div>
       <textarea
         v-model="universeInputModel"
@@ -115,11 +113,11 @@ const universeInputModel = computed({
 <style scoped lang="scss">
 .status-pill {
   flex-shrink: 0;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(22, 101, 52, 0.09);
+  background: rgba(22, 101, 52, 0.06);
   color: var(--accent);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -165,10 +163,11 @@ const universeInputModel = computed({
 
 .workspace-card {
   min-height: 300px;
-  padding: 18px;
-  border-radius: 20px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.34);
+  padding: 14px 0 0;
+  border-radius: 0;
+  border: 0;
+  border-top: 1px solid rgba(32, 43, 35, 0.08);
+  background: transparent;
 }
 
 .subdued-inline {

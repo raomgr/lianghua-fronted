@@ -36,6 +36,17 @@ function formatPercent(value, digits = 2) {
   return `${((Number(value) || 0) * 100).toFixed(digits)}%`;
 }
 
+function formatNullablePercent(value, digits = 2) {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return "-";
+  }
+  return formatPercent(number, digits);
+}
+
 function formatNumber(value, digits = 0) {
   return (Number(value) || 0).toLocaleString("zh-CN", { maximumFractionDigits: digits });
 }
@@ -1514,6 +1525,7 @@ onBeforeUnmount(() => {
                   <div class="signal-ep-history-meta">
                     <div><span>平均预期</span><strong>{{ formatPercent(row.avg_predicted_return_5d) }}</strong></div>
                     <div><span>最强信号</span><strong>{{ formatPercent(row.best_predicted_return_5d) }}</strong></div>
+                    <div><span>信号交易日</span><strong>{{ row.signal_trade_date || "-" }}</strong></div>
                     <div class="signal-ep-history-meta-symbols">
                       <span>目标股票</span>
                       <div class="signal-ep-history-target-list">
@@ -1528,6 +1540,36 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                   </div>
+
+                  <div
+                    v-if="row.signal_outcome?.tracked_symbols"
+                    class="signal-ep-stat-strip signal-ep-history-stat-strip"
+                  >
+                    <div class="signal-ep-stat-strip-item">
+                      <span>T+1 平均</span>
+                      <strong>{{ formatNullablePercent(row.signal_outcome?.avg_forward_return_1d) }}</strong>
+                    </div>
+                    <div class="signal-ep-stat-strip-item">
+                      <span>T+3 平均</span>
+                      <strong>{{ formatNullablePercent(row.signal_outcome?.avg_forward_return_3d) }}</strong>
+                    </div>
+                    <div class="signal-ep-stat-strip-item">
+                      <span>T+5 平均</span>
+                      <strong>{{ formatNullablePercent(row.signal_outcome?.avg_forward_return_5d) }}</strong>
+                    </div>
+                    <div class="signal-ep-stat-strip-item">
+                      <span>T+10 平均</span>
+                      <strong>{{ formatNullablePercent(row.signal_outcome?.avg_forward_return_10d) }}</strong>
+                    </div>
+                  </div>
+
+                  <el-alert
+                    v-if="row.signal_outcome?.tracked_symbols_5d"
+                    :title="`固定窗口复盘：这批目标股票在信号交易日之后，T+5 平均收益 ${formatNullablePercent(row.signal_outcome.avg_forward_return_5d)}，样本 ${row.signal_outcome.tracked_symbols_5d} 只。`"
+                    type="info"
+                    :closable="false"
+                    show-icon
+                  />
 
                   <div
                     v-if="row.execution_summary?.items_count || row.review_performance?.executed_items_count"
@@ -1585,21 +1627,25 @@ onBeforeUnmount(() => {
                             {{ item.tracked ? formatPrice(item.latest_price) : "-" }}
                           </template>
                         </el-table-column>
-                        <el-table-column label="后续表现" min-width="110">
+                        <el-table-column label="T+5 表现" min-width="110">
                           <template #default="{ row: item }">
                             <span :class="item.signed_return >= 0 ? 'positive-text' : 'negative-text'">
                               {{ item.tracked ? formatPercent(item.signed_return) : "-" }}
                             </span>
                           </template>
                         </el-table-column>
-                        <el-table-column label="方向收益" min-width="120">
+                        <el-table-column label="T+5 方向收益" min-width="120">
                           <template #default="{ row: item }">
                             {{ item.tracked ? formatNumber(item.signed_pnl) : "-" }}
                           </template>
                         </el-table-column>
                         <el-table-column label="备注" min-width="220" show-overflow-tooltip>
                           <template #default="{ row: item }">
-                            {{ item.tracked ? `跟踪金额 ${formatNumber(item.latest_value)}` : (item.note || "未形成可复盘价格") }}
+                            {{
+                              item.tracked
+                                ? `按固定窗口 T+5 复盘，参考现价 ${formatPrice(item.latest_price)}`
+                                : (item.note || "固定窗口样本尚未走完")
+                            }}
                           </template>
                         </el-table-column>
                       </el-table>

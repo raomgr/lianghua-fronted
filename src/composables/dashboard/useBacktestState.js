@@ -54,6 +54,7 @@ function getTagColor(value) {
 
 function normalizeControls(value = {}) {
   return {
+    backtest_mode: String(value.backtest_mode ?? DEFAULT_BACKTEST_CONTROLS.backtest_mode ?? "rule"),
     rebalance_days: Number(value.rebalance_days ?? DEFAULT_BACKTEST_CONTROLS.rebalance_days),
     top_n: Number(value.top_n ?? DEFAULT_BACKTEST_CONTROLS.top_n),
     trading_cost_bps: Number(value.trading_cost_bps ?? DEFAULT_BACKTEST_CONTROLS.trading_cost_bps),
@@ -62,7 +63,8 @@ function normalizeControls(value = {}) {
 }
 
 function buildPresetLabel(controls) {
-  return `${controls.rebalance_days}天 / ${controls.top_n}股 / 成本${controls.trading_cost_bps}-${controls.slippage_bps}`;
+  const modeLabel = controls.backtest_mode === "model" ? "模型" : "规则";
+  return `${modeLabel} / ${controls.rebalance_days}天 / ${controls.top_n}股 / 成本${controls.trading_cost_bps}-${controls.slippage_bps}`;
 }
 
 function toTimestamp(value) {
@@ -303,16 +305,21 @@ export function useBacktestState(errorRef) {
       { label: "基准收益", value: (backtest.value.summary.benchmark_return * 100).toFixed(2), suffix: "%" },
       { label: "超额收益", value: (backtest.value.summary.excess_return * 100).toFixed(2), suffix: "%" },
       { label: "年化收益", value: (backtest.value.summary.annual_return * 100).toFixed(2), suffix: "%" },
-      { label: "年化波动", value: (backtest.value.summary.annual_volatility * 100).toFixed(2), suffix: "%" },
       { label: "最大回撤", value: (backtest.value.summary.max_drawdown * 100).toFixed(2), suffix: "%" },
-      { label: "Calmar", value: backtest.value.summary.calmar.toFixed(2), suffix: "" },
+      { label: "年化波动", value: (backtest.value.summary.annual_volatility * 100).toFixed(2), suffix: "%" },
       { label: "Sharpe", value: backtest.value.summary.sharpe.toFixed(2), suffix: "" },
+      { label: "Calmar", value: backtest.value.summary.calmar.toFixed(2), suffix: "" },
       { label: "Sortino", value: Number(backtest.value.summary.sortino || 0).toFixed(2), suffix: "" },
       { label: "信息比率", value: Number(backtest.value.summary.information_ratio || 0).toFixed(2), suffix: "" },
-      { label: "Beta", value: Number(backtest.value.summary.beta || 0).toFixed(2), suffix: "" },
       { label: "Alpha", value: (Number(backtest.value.summary.alpha || 0) * 100).toFixed(2), suffix: "%" },
+      { label: "Beta", value: Number(backtest.value.summary.beta || 0).toFixed(2), suffix: "" },
       { label: "平均换手", value: (backtest.value.summary.avg_turnover * 100).toFixed(2), suffix: "%" },
       { label: "累计成本", value: (backtest.value.summary.total_cost * 100).toFixed(2), suffix: "%" },
+      {
+        label: "回测模式",
+        value: backtest.value.summary.backtest_mode === "model" ? "模型驱动" : "规则打分",
+        suffix: "",
+      },
     ];
   });
 
