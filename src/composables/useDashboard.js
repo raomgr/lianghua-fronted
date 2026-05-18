@@ -64,12 +64,33 @@ export function useDashboard() {
     },
   ]);
 
+  async function loadAllCustomUniverse(pageSize = 200) {
+    let page = 1;
+    let total = 0;
+    const items = [];
+
+    do {
+      const result = await fetchCustomUniverse({ page, pageSize });
+      items.push(...(result.items || []));
+      total = Number(result.total || 0);
+      page += 1;
+    } while (items.length < total);
+
+    return items;
+  }
+
   async function loadDashboard() {
     loading.value = true;
     error.value = "";
     const warnings = [];
 
     try {
+      try {
+        await backtestState.loadBacktestAssets();
+      } catch (assetError) {
+        warnings.push(`回测资产失败：${getErrorMessage(assetError)}`);
+      }
+
       const [
         stockResult,
         factorResult,
@@ -87,11 +108,17 @@ export function useDashboard() {
         fetchFactors(),
         fetchBacktest(backtestState.backtestControls.value),
         fetchModelStatus(),
-        fetchCustomUniverse(),
-        fetchPredictions(),
+        loadAllCustomUniverse(),
+        fetchPredictions({
+          page: modelState.predictionsPage.value,
+          pageSize: modelState.predictionsPageSize.value,
+        }),
         fetchModelDetail(),
         fetchModelCompare(),
-        fetchModelRuns(),
+        fetchModelRuns({
+          page: modelState.modelRunsPage.value,
+          pageSize: modelState.modelRunsPageSize.value,
+        }),
         paperState.loadPaperAccount(),
         signalState.loadSignalWorkspace({ silent: true }),
       ]);
@@ -128,7 +155,9 @@ export function useDashboard() {
       }
 
       if (predictionResult.status === "fulfilled") {
-        modelState.predictions.value = predictionResult.value;
+        modelState.predictions.value = predictionResult.value.items || [];
+        modelState.predictionsPage.value = Number(predictionResult.value.page || modelState.predictionsPage.value);
+        modelState.predictionsTotal.value = Number(predictionResult.value.total || 0);
       } else {
         warnings.push(`预测信号失败：${getErrorMessage(predictionResult.reason)}`);
       }
@@ -146,7 +175,9 @@ export function useDashboard() {
       }
 
       if (modelRunResult.status === "fulfilled") {
-        modelState.modelRuns.value = modelRunResult.value;
+        modelState.modelRuns.value = modelRunResult.value.items || [];
+        modelState.modelRunsPage.value = Number(modelRunResult.value.page || modelState.modelRunsPage.value);
+        modelState.modelRunsTotal.value = Number(modelRunResult.value.total || 0);
       } else {
         warnings.push(`训练历史失败：${getErrorMessage(modelRunResult.reason)}`);
       }

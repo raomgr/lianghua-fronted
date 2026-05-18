@@ -4,6 +4,9 @@ import { fetchSignalCenter, fetchSignalHistory, saveSignalReview } from "../../s
 export function useSignalState(errorRef) {
   const signalCenter = ref(null);
   const signalHistory = ref([]);
+  const signalHistoryPage = ref(1);
+  const signalHistoryPageSize = ref(12);
+  const signalHistoryTotal = ref(0);
   const signalLoading = ref(false);
   const signalReviewing = ref(false);
   const signalReviewDraft = ref("");
@@ -82,7 +85,7 @@ export function useSignalState(errorRef) {
         : 0;
 
     return {
-      totalSignals: rows.length,
+      totalSignals: signalHistoryTotal.value || rows.length,
       executedSignals: executedRows.length,
       ignoredSignals: ignoredRows.length,
       pendingSignals: pendingRows.length,
@@ -509,15 +512,20 @@ export function useSignalState(errorRef) {
     signalExecutionItemsDraft.value = next;
   }
 
-  async function loadSignalWorkspace({ silent = false } = {}) {
+  async function loadSignalWorkspace({ silent = false, page = signalHistoryPage.value } = {}) {
     if (!silent) {
       signalLoading.value = true;
     }
     try {
-      const [center, history] = await Promise.all([fetchSignalCenter(), fetchSignalHistory({ limit: 24 })]);
+      const [center, history] = await Promise.all([
+        fetchSignalCenter(),
+        fetchSignalHistory({ page, pageSize: signalHistoryPageSize.value }),
+      ]);
 
       signalCenter.value = center;
-      signalHistory.value = history;
+      signalHistory.value = history.items || [];
+      signalHistoryPage.value = Number(history.page || page || 1);
+      signalHistoryTotal.value = Number(history.total || 0);
       signalReviewDraft.value = center?.review?.note ?? "";
       syncExecutionDraftFromCenter(center);
       return center;
@@ -577,8 +585,13 @@ export function useSignalState(errorRef) {
   function startSignalPolling(intervalMs = 60000) {
     stopSignalPolling();
     signalPollingTimer = window.setInterval(() => {
-      loadSignalWorkspace({ silent: true }).catch(() => {});
+      loadSignalWorkspace({ silent: true, page: signalHistoryPage.value }).catch(() => {});
     }, intervalMs);
+  }
+
+  function setSignalHistoryPage(page) {
+    signalHistoryPage.value = Number(page || 1);
+    return loadSignalWorkspace({ silent: true, page: signalHistoryPage.value });
   }
 
   function stopSignalPolling() {
@@ -595,6 +608,9 @@ export function useSignalState(errorRef) {
   return {
     signalCenter,
     signalHistory,
+    signalHistoryPage,
+    signalHistoryPageSize,
+    signalHistoryTotal,
     signalLoading,
     signalReviewing,
     signalReviewDraft,
@@ -618,6 +634,7 @@ export function useSignalState(errorRef) {
     setSignalReviewDraft,
     updateSignalExecutionItem,
     loadSignalWorkspace,
+    setSignalHistoryPage,
     handleSaveSignalReview,
     startSignalPolling,
     stopSignalPolling,

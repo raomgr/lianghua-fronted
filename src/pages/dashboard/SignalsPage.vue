@@ -30,6 +30,9 @@ onBeforeUnmount(() => {
       :signal-target-positions="dashboard.signalTargetPositions"
       :signal-top-candidates="dashboard.signalTopCandidates"
       :signal-history="dashboard.signalHistory"
+      :signal-history-page="dashboard.signalHistoryPage"
+      :signal-history-page-size="dashboard.signalHistoryPageSize"
+      :signal-history-total="dashboard.signalHistoryTotal"
       :signal-loading="dashboard.signalLoading"
       :signal-reviewing="dashboard.signalReviewing"
       :signal-review-draft="dashboard.signalReviewDraft"
@@ -49,6 +52,7 @@ onBeforeUnmount(() => {
       @save-review="dashboard.handleSaveSignalReview"
       @update:signal-review-draft="dashboard.setSignalReviewDraft"
       @update:signalExecutionItem="dashboard.updateSignalExecutionItem"
+      @page-signal-history="dashboard.setSignalHistoryPage"
     />
   </template>
 </template>

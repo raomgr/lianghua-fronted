@@ -1,11 +1,22 @@
 import { computed, ref } from "vue";
 import { ElMessage } from "element-plus";
 import {
+  addBacktestPresetTag,
+  clearBacktestRunHistory as clearBacktestRunHistoryRequest,
+  createBacktestPreset,
+  createBacktestRunHistory,
+  deleteBacktestPreset as deleteBacktestPresetRequest,
   fetchBacktest,
+  fetchBacktestPresets,
+  fetchBacktestRunHistory,
   fetchBacktestMonteCarlo,
   fetchBacktestScenarios,
   fetchBacktestSensitivity,
   fetchBacktestStability,
+  removeBacktestPresetTag as removeBacktestPresetTagRequest,
+  setDefaultBacktestPreset as setDefaultBacktestPresetRequest,
+  updateBacktestPreset,
+  useBacktestPreset,
 } from "../../services/market";
 import { DEFAULT_BACKTEST_CONTROLS } from "./constants";
 
@@ -13,8 +24,6 @@ const BACKTEST_PRESETS_KEY = "ashare.backtest.presets.v1";
 const BACKTEST_DEFAULT_PRESET_KEY = "ashare.backtest.presets.default.v1";
 const BACKTEST_CUSTOM_TAGS_KEY = "ashare.backtest.presets.tags.v1";
 const BACKTEST_RUN_HISTORY_KEY = "ashare.backtest.run.history.v1";
-const MAX_PRESET_COUNT = 6;
-const MAX_BACKTEST_HISTORY_COUNT = 30;
 const PRESET_TAG_OPTIONS = ["通用", "稳健", "激进", "测试"];
 const BUILT_IN_TAG_COLORS = {
   通用: "#2f7d57",
@@ -122,14 +131,6 @@ function readStoredPresets() {
   }
 }
 
-function persistPresets(presets) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(BACKTEST_PRESETS_KEY, JSON.stringify(presets));
-}
-
 function readDefaultPresetId(savedPresets = []) {
   if (typeof window === "undefined") {
     return "";
@@ -141,19 +142,6 @@ function readDefaultPresetId(savedPresets = []) {
   }
 
   return savedPresets.some((item) => item.id === value) ? value : "";
-}
-
-function persistDefaultPresetId(value) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  if (!value) {
-    window.localStorage.removeItem(BACKTEST_DEFAULT_PRESET_KEY);
-    return;
-  }
-
-  window.localStorage.setItem(BACKTEST_DEFAULT_PRESET_KEY, value);
 }
 
 function readCustomTags() {
@@ -178,14 +166,6 @@ function readCustomTags() {
   } catch {
     return [];
   }
-}
-
-function persistCustomTags(tags) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(BACKTEST_CUSTOM_TAGS_KEY, JSON.stringify(tags));
 }
 
 function getPresetExportPayload(presets, defaultPresetId) {
@@ -253,12 +233,49 @@ function readBacktestRunHistory() {
   }
 }
 
-function persistBacktestRunHistory(history) {
+function clearLegacyBacktestStorage() {
   if (typeof window === "undefined") {
     return;
   }
 
-  window.localStorage.setItem(BACKTEST_RUN_HISTORY_KEY, JSON.stringify(history));
+  window.localStorage.removeItem(BACKTEST_PRESETS_KEY);
+  window.localStorage.removeItem(BACKTEST_DEFAULT_PRESET_KEY);
+  window.localStorage.removeItem(BACKTEST_CUSTOM_TAGS_KEY);
+  window.localStorage.removeItem(BACKTEST_RUN_HISTORY_KEY);
+}
+
+async function loadAllBacktestPresets(tag = "全部", pageSize = 100) {
+  let page = 1;
+  let total = 0;
+  let defaultPresetId = "";
+  let customTags = [];
+  const items = [];
+
+  do {
+    const result = await fetchBacktestPresets({ page, pageSize, tag });
+    items.push(...(result.items || []));
+    total = Number(result.total || 0);
+    defaultPresetId = result.default_preset_id || defaultPresetId;
+    customTags = result.custom_tags || customTags;
+    page += 1;
+  } while (items.length < total);
+
+  return { items, defaultPresetId, customTags };
+}
+
+async function loadAllBacktestRunHistory(pageSize = 100) {
+  let page = 1;
+  let total = 0;
+  const items = [];
+
+  do {
+    const result = await fetchBacktestRunHistory({ page, pageSize });
+    items.push(...(result.items || []));
+    total = Number(result.total || 0);
+    page += 1;
+  } while (items.length < total);
+
+  return items;
 }
 
 function escapeCsvCell(value) {
@@ -274,6 +291,7 @@ export function useBacktestState(errorRef) {
   const storedDefaultPresetId = readDefaultPresetId(storedPresets);
   const normalizedPresets = sortPresets(storedPresets, storedDefaultPresetId);
   const initialPreset = normalizedPresets.find((item) => item.id === storedDefaultPresetId) ?? normalizedPresets[0] ?? null;
+  const legacyBacktestHistory = readBacktestRunHistory();
 
   const backtest = ref(null);
   const backtesting = ref(false);
@@ -291,9 +309,10 @@ export function useBacktestState(errorRef) {
   const presetTagFilter = ref("全部");
   const customPresetTags = ref(readCustomTags());
   const savedPresets = ref(normalizedPresets);
-  const backtestRunHistory = ref(readBacktestRunHistory());
+  const backtestRunHistory = ref(legacyBacktestHistory);
   const activePresetId = ref(initialPreset?.id ?? "");
   const defaultPresetId = ref(storedDefaultPresetId);
+  const backtestAssetsReady = ref(false);
 
   const metricCards = computed(() => {
     if (!backtest.value) {
@@ -368,6 +387,93 @@ export function useBacktestState(errorRef) {
     return savedPresets.value.filter((item) => normalizeTag(item.tag) === presetTagFilter.value);
   });
 
+async function migrateLegacyBacktestAssets() {
+    if (!storedPresets.length && !legacyBacktestHistory.length && !customPresetTags.value.length) {
+      return;
+    }
+
+    if (storedPresets.length) {
+      for (const preset of storedPresets) {
+        await createBacktestPreset({
+          id: preset.id,
+          name: preset.name,
+          tag: normalizeTag(preset.tag),
+          controls: normalizeControls(preset.controls),
+          created_at: preset.created_at,
+          last_used_at: preset.last_used_at,
+        });
+      }
+    }
+
+    for (const tag of customPresetTags.value) {
+      if (tag && tag !== "全部" && tag !== "未分类" && !isBuiltInTag(tag)) {
+        await addBacktestPresetTag(tag);
+      }
+    }
+
+    if (storedDefaultPresetId) {
+      await setDefaultBacktestPresetRequest(storedDefaultPresetId);
+    }
+
+    if (legacyBacktestHistory.length) {
+      for (const entry of legacyBacktestHistory) {
+        await createBacktestRunHistory({
+          id: entry.id,
+          run_at: entry.run_at,
+          controls: normalizeControls(entry.controls),
+          summary: {
+            annual_return: Number(entry.summary?.annual_return ?? 0),
+            sharpe: Number(entry.summary?.sharpe ?? 0),
+            max_drawdown: Number(entry.summary?.max_drawdown ?? 0),
+            total_return: Number(entry.summary?.total_return ?? 0),
+          },
+        });
+      }
+    }
+
+    clearLegacyBacktestStorage();
+  }
+
+  async function loadBacktestAssets() {
+    const presetPayload = await loadAllBacktestPresets();
+    let presets = sortPresets(presetPayload.items || [], presetPayload.defaultPresetId || "");
+    let history = await loadAllBacktestRunHistory();
+    let nextDefaultPresetId = presetPayload.defaultPresetId || "";
+    let nextCustomTags = presetPayload.customTags || [];
+
+    if (!presets.length && !history.length && (storedPresets.length || legacyBacktestHistory.length || customPresetTags.value.length)) {
+      await migrateLegacyBacktestAssets();
+      const migratedPresetPayload = await loadAllBacktestPresets();
+      presets = sortPresets(migratedPresetPayload.items || [], migratedPresetPayload.defaultPresetId || "");
+      history = await loadAllBacktestRunHistory();
+      nextDefaultPresetId = migratedPresetPayload.defaultPresetId || "";
+      nextCustomTags = migratedPresetPayload.customTags || [];
+    }
+
+    savedPresets.value = presets;
+    backtestRunHistory.value = history;
+    defaultPresetId.value = nextDefaultPresetId;
+    customPresetTags.value = nextCustomTags.filter((tag) => tag && !isBuiltInTag(tag) && tag !== "未分类");
+    activePresetId.value = savedPresets.value.some((item) => item.id === activePresetId.value)
+      ? activePresetId.value
+      : (defaultPresetId.value || savedPresets.value[0]?.id || "");
+
+    if (!backtestAssetsReady.value && !activePresetId.value && savedPresets.value[0]) {
+      activePresetId.value = savedPresets.value[0].id;
+    }
+
+    const activePreset = savedPresets.value.find((item) => item.id === activePresetId.value)
+      ?? savedPresets.value.find((item) => item.id === defaultPresetId.value)
+      ?? savedPresets.value[0]
+      ?? null;
+    if (activePreset) {
+      backtestControls.value = normalizeControls(activePreset.controls);
+    }
+
+    backtestAssetsReady.value = true;
+    syncCustomTagsWithPresets();
+  }
+
   async function reloadBacktest() {
     backtest.value = await fetchBacktest(backtestControls.value);
     return backtest.value;
@@ -379,7 +485,7 @@ export function useBacktestState(errorRef) {
 
     try {
       const snapshot = await reloadBacktest();
-      pushBacktestRunHistory(snapshot, backtestControls.value);
+      await pushBacktestRunHistory(snapshot, backtestControls.value);
       setPresetSyncMessage("回测已完成并记录到历史");
     } catch (err) {
       errorRef.value = err.message;
@@ -493,7 +599,7 @@ export function useBacktestState(errorRef) {
     presetTagFilter.value = value || "全部";
   }
 
-  function addCustomPresetTag(value) {
+  async function addCustomPresetTag(value) {
     const tag = normalizeTag(value);
     if (!tag || tag === "全部" || tag === "未分类" || isBuiltInTag(tag)) {
       setPresetSyncMessage("这个标签名不可用");
@@ -506,13 +612,13 @@ export function useBacktestState(errorRef) {
       return;
     }
 
+    await addBacktestPresetTag(tag);
     customPresetTags.value = [...customPresetTags.value, tag];
     presetTag.value = tag;
-    persistCustomTags(customPresetTags.value);
     setPresetSyncMessage("标签已新增");
   }
 
-  function removeCustomPresetTag(value) {
+  async function removeCustomPresetTag(value) {
     const tag = normalizeTag(value);
     if (!tag || isBuiltInTag(tag) || tag === "未分类" || tag === "全部") {
       return;
@@ -523,18 +629,14 @@ export function useBacktestState(errorRef) {
       return;
     }
 
-    customPresetTags.value = customPresetTags.value.filter((item) => item !== tag);
-    savedPresets.value = savedPresets.value.map((item) => (normalizeTag(item.tag) === tag ? { ...item, tag: "未分类" } : item));
-
+    await removeBacktestPresetTagRequest(tag);
     if (presetTag.value === tag) {
       presetTag.value = "通用";
     }
     if (presetTagFilter.value === tag) {
       presetTagFilter.value = "全部";
     }
-
-    persistCustomTags(customPresetTags.value);
-    persistPresets(savedPresets.value);
+    await loadBacktestAssets();
     setPresetSyncMessage("标签已删除，原方案已归类到“未分类”");
   }
 
@@ -557,7 +659,6 @@ export function useBacktestState(errorRef) {
     const exists = savedPresets.value.some((item) => item.id === defaultPresetId.value);
     if (!exists) {
       defaultPresetId.value = "";
-      persistDefaultPresetId("");
     }
   }
 
@@ -568,10 +669,9 @@ export function useBacktestState(errorRef) {
 
     const next = [...new Set([...customPresetTags.value, ...fromPresets])];
     customPresetTags.value = next;
-    persistCustomTags(next);
   }
 
-  function pushBacktestRunHistory(snapshot, controls) {
+  async function pushBacktestRunHistory(snapshot, controls) {
     const nextEntry = {
       id: getNextPresetId(),
       run_at: new Date().toISOString(),
@@ -583,9 +683,8 @@ export function useBacktestState(errorRef) {
         total_return: Number(snapshot?.summary?.total_return ?? 0),
       },
     };
-
-    backtestRunHistory.value = [nextEntry, ...backtestRunHistory.value].slice(0, MAX_BACKTEST_HISTORY_COUNT);
-    persistBacktestRunHistory(backtestRunHistory.value);
+    await createBacktestRunHistory(nextEntry);
+    backtestRunHistory.value = await loadAllBacktestRunHistory();
   }
 
   function applyBacktestHistory(entryId) {
@@ -598,9 +697,9 @@ export function useBacktestState(errorRef) {
     setPresetSyncMessage("已套用历史参数");
   }
 
-  function clearBacktestRunHistory() {
+  async function clearBacktestRunHistory() {
+    await clearBacktestRunHistoryRequest();
     backtestRunHistory.value = [];
-    persistBacktestRunHistory([]);
     setPresetSyncMessage("回测历史已清空");
   }
 
@@ -685,75 +784,63 @@ export function useBacktestState(errorRef) {
     setPresetSyncMessage("回测历史已导出");
   }
 
-  function saveCurrentPreset() {
+  async function saveCurrentPreset() {
     const controls = normalizeControls(backtestControls.value);
     const now = new Date().toISOString();
     const name = presetName.value.trim() || buildPresetLabel(controls);
-    const nextPreset = {
+    const created = await createBacktestPreset({
       id: getNextPresetId(),
       name,
       tag: normalizeTag(presetTag.value),
       controls,
       created_at: now,
       last_used_at: now,
-    };
-
-    const previousDefaultId = defaultPresetId.value;
-    const merged = [nextPreset, ...savedPresets.value].slice(0, MAX_PRESET_COUNT);
-
-    activePresetId.value = nextPreset.id;
+    });
+    activePresetId.value = created.id;
     if (!defaultPresetId.value) {
-      defaultPresetId.value = nextPreset.id;
-      persistDefaultPresetId(defaultPresetId.value);
+      await setDefaultBacktestPresetRequest(created.id);
     }
-    savedPresets.value = sortPresets(merged, defaultPresetId.value || previousDefaultId);
+    await loadBacktestAssets();
     ensureDefaultPresetStillExists();
     presetName.value = "";
-    persistPresets(savedPresets.value);
-    syncCustomTagsWithPresets();
     setPresetSyncMessage("方案已保存");
   }
 
-  function applyBacktestPreset(presetId) {
+  async function applyBacktestPreset(presetId) {
     const target = savedPresets.value.find((item) => item.id === presetId);
     if (!target) {
       return;
     }
 
-    const now = new Date().toISOString();
     backtestControls.value = normalizeControls(target.controls);
     activePresetId.value = target.id;
-    savedPresets.value = savedPresets.value.map((item) => (item.id === presetId ? { ...item, last_used_at: now } : item));
-    persistPresets(savedPresets.value);
+    await useBacktestPreset(presetId);
+    await loadBacktestAssets();
   }
 
-  function deleteBacktestPreset(presetId) {
+  async function deleteBacktestPreset(presetId) {
+    await deleteBacktestPresetRequest(presetId);
     savedPresets.value = savedPresets.value.filter((item) => item.id !== presetId);
     if (activePresetId.value === presetId) {
       activePresetId.value = savedPresets.value[0]?.id ?? "";
     }
     if (defaultPresetId.value === presetId) {
       defaultPresetId.value = "";
-      persistDefaultPresetId("");
     }
-    savedPresets.value = sortPresets(savedPresets.value, defaultPresetId.value);
-    ensureDefaultPresetStillExists();
-    persistPresets(savedPresets.value);
+    await loadBacktestAssets();
     setPresetSyncMessage("方案已删除");
   }
 
-  function setDefaultBacktestPreset(presetId) {
+  async function setDefaultBacktestPreset(presetId) {
     if (!savedPresets.value.some((item) => item.id === presetId)) {
       return;
     }
-    defaultPresetId.value = presetId;
-    savedPresets.value = sortPresets(savedPresets.value, defaultPresetId.value);
-    persistDefaultPresetId(presetId);
-    persistPresets(savedPresets.value);
+    await setDefaultBacktestPresetRequest(presetId);
+    await loadBacktestAssets();
     setPresetSyncMessage("默认方案已更新");
   }
 
-  function renameBacktestPreset(payload) {
+  async function renameBacktestPreset(payload) {
     const presetId = payload?.presetId;
     const nextName = String(payload?.name ?? "").trim();
     if (!presetId || !nextName) {
@@ -765,13 +852,12 @@ export function useBacktestState(errorRef) {
     if (!exists) {
       return;
     }
-
-    savedPresets.value = savedPresets.value.map((item) => (item.id === presetId ? { ...item, name: nextName } : item));
-    persistPresets(savedPresets.value);
+    await updateBacktestPreset(presetId, { name: nextName });
+    await loadBacktestAssets();
     setPresetSyncMessage("方案名称已更新");
   }
 
-  function retagBacktestPreset(payload) {
+  async function retagBacktestPreset(payload) {
     const presetId = payload?.presetId;
     const tag = normalizeTag(payload?.tag);
     if (!presetId) {
@@ -782,14 +868,15 @@ export function useBacktestState(errorRef) {
     if (!exists) {
       return;
     }
-
-    savedPresets.value = savedPresets.value.map((item) => (item.id === presetId ? { ...item, tag } : item));
-    persistPresets(savedPresets.value);
-    syncCustomTagsWithPresets();
+    await updateBacktestPreset(presetId, { tag });
+    if (!isBuiltInTag(tag) && tag !== "未分类") {
+      await addBacktestPresetTag(tag);
+    }
+    await loadBacktestAssets();
     setPresetSyncMessage("方案标签已更新");
   }
 
-  function duplicateBacktestPreset(presetId) {
+  async function duplicateBacktestPreset(presetId) {
     const source = savedPresets.value.find((item) => item.id === presetId);
     if (!source) {
       return;
@@ -805,11 +892,9 @@ export function useBacktestState(errorRef) {
       last_used_at: now,
     };
 
-    const merged = [duplicated, ...savedPresets.value].slice(0, MAX_PRESET_COUNT);
+    await createBacktestPreset(duplicated);
     activePresetId.value = duplicated.id;
-    savedPresets.value = sortPresets(merged, defaultPresetId.value);
-    persistPresets(savedPresets.value);
-    syncCustomTagsWithPresets();
+    await loadBacktestAssets();
     setPresetSyncMessage("方案已复制");
   }
 
@@ -833,7 +918,7 @@ export function useBacktestState(errorRef) {
     setPresetSyncMessage("方案已导出");
   }
 
-  function importBacktestPresets(rawText) {
+  async function importBacktestPresets(rawText) {
     try {
       const parsed = JSON.parse(rawText);
       const sourcePresets = Array.isArray(parsed) ? parsed : parsed?.presets;
@@ -876,31 +961,13 @@ export function useBacktestState(errorRef) {
         throw new Error("没有可导入的方案");
       }
 
-      const mergedMap = new Map();
-      imported.forEach((item) => mergedMap.set(item.id, item));
-      savedPresets.value.forEach((item) => {
-        if (!mergedMap.has(item.id)) {
-          mergedMap.set(item.id, item);
-        }
-      });
-
-      const merged = Array.from(mergedMap.values()).slice(0, MAX_PRESET_COUNT);
-      const nextDefaultId = merged.some((item) => item.id === sourceDefaultId) ? sourceDefaultId : defaultPresetId.value;
-
-      defaultPresetId.value = nextDefaultId && merged.some((item) => item.id === nextDefaultId) ? nextDefaultId : "";
-      savedPresets.value = sortPresets(merged, defaultPresetId.value);
-      activePresetId.value = savedPresets.value[0]?.id ?? "";
-
-      if (defaultPresetId.value) {
-        const target = savedPresets.value.find((item) => item.id === defaultPresetId.value);
-        if (target) {
-          backtestControls.value = normalizeControls(target.controls);
-        }
+      for (const item of imported) {
+        await createBacktestPreset(item);
       }
-
-      persistPresets(savedPresets.value);
-      persistDefaultPresetId(defaultPresetId.value);
-      syncCustomTagsWithPresets();
+      if (sourceDefaultId && imported.some((item) => item.id === sourceDefaultId)) {
+        await setDefaultBacktestPresetRequest(sourceDefaultId);
+      }
+      await loadBacktestAssets();
       setPresetSyncMessage(`已导入 ${imported.length} 个方案`);
       return true;
     } catch (error) {
@@ -968,5 +1035,6 @@ export function useBacktestState(errorRef) {
     exportBacktestSnapshotCsv,
     exportBacktestRunHistoryCsv,
     importBacktestPresets,
+    loadBacktestAssets,
   };
 }

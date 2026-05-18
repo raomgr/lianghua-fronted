@@ -1,7 +1,12 @@
 import { http } from "./http";
 
-export function fetchCustomUniverse() {
-  return http.get("/api/universe/custom");
+export function fetchCustomUniverse(params = {}) {
+  return http.get("/api/universe/custom", {
+    params: {
+      page: params.page ?? 1,
+      page_size: params.pageSize ?? 20,
+    },
+  });
 }
 
 export function fetchUniverseSearch(query, params = {}) {

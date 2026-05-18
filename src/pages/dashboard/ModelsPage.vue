@@ -23,6 +23,10 @@ const dashboard = useDashboardContext();
       :model-detail="dashboard.modelDetail"
       :walk-forward-summary="dashboard.walkForwardSummary"
       :model-runs="dashboard.modelRuns"
+      :model-runs-page="dashboard.modelRunsPage"
+      :model-runs-page-size="dashboard.modelRunsPageSize"
+      :model-runs-total="dashboard.modelRunsTotal"
+      @page-model-runs="dashboard.loadModelRunsPage"
     />
 
     <RoadmapPanel />

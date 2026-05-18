@@ -4,7 +4,12 @@ defineProps({
   modelDetail: { type: Object, default: null },
   walkForwardSummary: { type: Object, default: () => ({}) },
   modelRuns: { type: Array, default: () => [] },
+  modelRunsPage: { type: Number, default: 1 },
+  modelRunsPageSize: { type: Number, default: 6 },
+  modelRunsTotal: { type: Number, default: 0 },
 });
+
+const emit = defineEmits(["page-model-runs"]);
 </script>
 
 <template>
@@ -112,6 +117,16 @@ defineProps({
               <span>IC {{ row.validation_ic.toFixed(4) }} / Acc {{ (row.validation_directional_accuracy * 100).toFixed(1) }}%</span>
             </div>
           </div>
+          <div v-if="modelRunsTotal > modelRunsPageSize" class="model-runs-pagination">
+            <el-pagination
+              :current-page="modelRunsPage"
+              :page-size="modelRunsPageSize"
+              layout="prev, pager, next, total"
+              background
+              :total="modelRunsTotal"
+              @current-change="emit('page-model-runs', $event)"
+            />
+          </div>
         </div>
       </section>
     </div>
@@ -121,5 +136,11 @@ defineProps({
 <style scoped lang="scss">
 .model-compare-grid .compare-card {
   min-height: 230px;
+}
+
+.model-runs-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 </style>

@@ -12,12 +12,22 @@ export function fetchModelCompare() {
   return http.get("/api/model/compare");
 }
 
-export function fetchModelRuns() {
-  return http.get("/api/model/runs");
+export function fetchModelRuns(params = {}) {
+  return http.get("/api/model/runs", {
+    params: {
+      page: params.page ?? 1,
+      page_size: params.pageSize ?? 6,
+    },
+  });
 }
 
-export function fetchPredictions() {
-  return http.get("/api/model/predictions");
+export function fetchPredictions(params = {}) {
+  return http.get("/api/model/predictions", {
+    params: {
+      page: params.page ?? 1,
+      page_size: params.pageSize ?? 24,
+    },
+  });
 }
 
 export function triggerModelTrain() {

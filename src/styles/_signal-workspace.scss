@@ -568,6 +568,12 @@
   background: rgba(255, 255, 255, 0.46);
 }
 
+.signal-history-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
 .signal-ep-table {
   --el-table-header-bg-color: rgba(231, 233, 219, 0.92);
   --el-table-tr-bg-color: rgba(255, 255, 255, 0.78);

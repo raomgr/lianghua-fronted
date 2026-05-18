@@ -9,6 +9,9 @@ const props = defineProps({
   signalTargetPositions: { type: Array, default: () => [] },
   signalTopCandidates: { type: Array, default: () => [] },
   signalHistory: { type: Array, default: () => [] },
+  signalHistoryPage: { type: Number, default: 1 },
+  signalHistoryPageSize: { type: Number, default: 12 },
+  signalHistoryTotal: { type: Number, default: 0 },
   signalLoading: { type: Boolean, default: false },
   signalReviewing: { type: Boolean, default: false },
   signalReviewDraft: { type: String, default: "" },
@@ -26,7 +29,13 @@ const props = defineProps({
   signalMessage: { type: String, default: "" },
 });
 
-const emit = defineEmits(["refresh", "save-review", "update:signalReviewDraft", "update:signalExecutionItem"]);
+const emit = defineEmits([
+  "refresh",
+  "save-review",
+  "update:signalReviewDraft",
+  "update:signalExecutionItem",
+  "page-signal-history",
+]);
 
 const copyMessage = ref("");
 const activeQualityTab = ref("context");
@@ -1516,8 +1525,9 @@ onBeforeUnmount(() => {
         </div>
       </template>
 
-      <div v-if="signalHistory.length" class="signal-ep-table-wrap">
-        <el-table :data="signalHistory" stripe class="signal-ep-table" row-key="model_run_id">
+      <template v-if="signalHistory.length">
+        <div class="signal-ep-table-wrap">
+          <el-table :data="signalHistory" stripe class="signal-ep-table" row-key="model_run_id">
           <el-table-column type="expand" width="56">
             <template #default="{ row }">
               <div class="signal-ep-history-expand-shell">
@@ -1695,9 +1705,20 @@ onBeforeUnmount(() => {
               </el-tooltip>
             </template>
           </el-table-column>
-        </el-table>
-      </div>
-      <el-empty v-if="!signalHistory.length" description="还没有历史信号记录。" :image-size="72" />
+          </el-table>
+        </div>
+        <div v-if="signalHistoryTotal > signalHistoryPageSize" class="signal-history-pagination">
+          <el-pagination
+            :current-page="signalHistoryPage"
+            :page-size="signalHistoryPageSize"
+            layout="prev, pager, next, total"
+            background
+            :total="signalHistoryTotal"
+            @current-change="emit('page-signal-history', $event)"
+          />
+        </div>
+      </template>
+      <el-empty v-else description="还没有历史信号记录。" :image-size="72" />
     </el-card>
 
     <el-card shadow="never" class="signal-ep-panel">

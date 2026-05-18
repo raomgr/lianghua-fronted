@@ -1,5 +1,5 @@
 import { computed, ref } from "vue";
-import { fetchModelTrainJob, triggerModelTrain } from "../../services/model";
+import { fetchModelRuns, fetchModelTrainJob, fetchPredictions, triggerModelTrain } from "../../services/model";
 
 export function useModelState(errorRef, onTrained) {
   const modelStatus = ref(null);
@@ -7,6 +7,12 @@ export function useModelState(errorRef, onTrained) {
   const modelCompare = ref([]);
   const modelRuns = ref([]);
   const predictions = ref([]);
+  const modelRunsPage = ref(1);
+  const modelRunsPageSize = ref(6);
+  const modelRunsTotal = ref(0);
+  const predictionsPage = ref(1);
+  const predictionsPageSize = ref(24);
+  const predictionsTotal = ref(0);
   const training = ref(false);
   const updating = ref(false);
   const lastUpdateMessage = ref("");
@@ -15,6 +21,22 @@ export function useModelState(errorRef, onTrained) {
   const championModel = computed(() => modelCompare.value.find((item) => item.is_champion) ?? modelCompare.value[0] ?? null);
   const topPrediction = computed(() => predictions.value[0] ?? null);
   const walkForwardSummary = computed(() => modelDetail.value?.metrics ?? {});
+
+  async function loadModelRunsPage(page = modelRunsPage.value) {
+    const result = await fetchModelRuns({ page, pageSize: modelRunsPageSize.value });
+    modelRuns.value = result.items || [];
+    modelRunsPage.value = Number(result.page || page || 1);
+    modelRunsTotal.value = Number(result.total || 0);
+    return result;
+  }
+
+  async function loadPredictionsPage(page = predictionsPage.value) {
+    const result = await fetchPredictions({ page, pageSize: predictionsPageSize.value });
+    predictions.value = result.items || [];
+    predictionsPage.value = Number(result.page || page || 1);
+    predictionsTotal.value = Number(result.total || 0);
+    return result;
+  }
 
   async function handleTrainModel() {
     training.value = true;
@@ -53,6 +75,12 @@ export function useModelState(errorRef, onTrained) {
     modelCompare,
     modelRuns,
     predictions,
+    modelRunsPage,
+    modelRunsPageSize,
+    modelRunsTotal,
+    predictionsPage,
+    predictionsPageSize,
+    predictionsTotal,
     training,
     updating,
     lastUpdateMessage,
@@ -60,6 +88,8 @@ export function useModelState(errorRef, onTrained) {
     championModel,
     topPrediction,
     walkForwardSummary,
+    loadModelRunsPage,
+    loadPredictionsPage,
     handleTrainModel,
   };
 }

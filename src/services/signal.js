@@ -5,7 +5,12 @@ export function fetchSignalCenter() {
 }
 
 export function fetchSignalHistory(params = {}) {
-  return http.get("/api/signals/history", { params });
+  return http.get("/api/signals/history", {
+    params: {
+      page: params.page ?? 1,
+      page_size: params.pageSize ?? params.limit ?? 12,
+    },
+  });
 }
 
 export function saveSignalReview(payload = {}) {
