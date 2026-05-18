@@ -4,9 +4,13 @@ export function fetchCustomUniverse() {
   return http.get("/api/universe/custom");
 }
 
-export function fetchUniverseSearch(query) {
+export function fetchUniverseSearch(query, params = {}) {
   return http.get("/api/universe/search", {
-    params: { q: query },
+    params: {
+      q: query,
+      page: params.page ?? 1,
+      page_size: params.pageSize ?? 6,
+    },
   });
 }
 

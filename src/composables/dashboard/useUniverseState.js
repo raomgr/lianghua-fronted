@@ -8,6 +8,9 @@ export function useUniverseState(errorRef, onSaved) {
   const customUniverseInput = ref("");
   const universeSearchQuery = ref("");
   const universeSearchResults = ref([]);
+  const universeSearchPage = ref(1);
+  const universeSearchPageSize = ref(6);
+  const universeSearchTotal = ref(0);
 
   const customUniverseSymbols = computed(() => new Set(customUniverseItems.value.map((item) => item.symbol)));
   const canSaveUniverse = computed(
@@ -41,15 +44,23 @@ export function useUniverseState(errorRef, onSaved) {
     }
   }
 
-  async function handleUniverseSearch() {
+  async function handleUniverseSearch(page = universeSearchPage.value) {
     const query = universeSearchQuery.value.trim();
     if (!query) {
       universeSearchResults.value = [];
+       universeSearchPage.value = 1;
+       universeSearchTotal.value = 0;
       return;
     }
 
     try {
-      universeSearchResults.value = await fetchUniverseSearch(query);
+      const result = await fetchUniverseSearch(query, {
+        page,
+        pageSize: universeSearchPageSize.value,
+      });
+      universeSearchResults.value = result.items || [];
+      universeSearchPage.value = Number(result.page || page || 1);
+      universeSearchTotal.value = Number(result.total || 0);
     } catch (err) {
       errorRef.value = err.message;
     }
@@ -84,6 +95,12 @@ export function useUniverseState(errorRef, onSaved) {
 
   function setUniverseSearchQuery(value) {
     universeSearchQuery.value = value;
+    universeSearchPage.value = 1;
+  }
+
+  function setUniverseSearchPage(value) {
+    universeSearchPage.value = Number(value || 1);
+    handleUniverseSearch(universeSearchPage.value);
   }
 
   return {
@@ -93,6 +110,9 @@ export function useUniverseState(errorRef, onSaved) {
     customUniverseInput,
     universeSearchQuery,
     universeSearchResults,
+    universeSearchPage,
+    universeSearchPageSize,
+    universeSearchTotal,
     customUniverseSymbols,
     canSaveUniverse,
     handleSaveCustomUniverse,
@@ -102,5 +122,6 @@ export function useUniverseState(errorRef, onSaved) {
     handleRemoveUniverseItem,
     setCustomUniverseInput,
     setUniverseSearchQuery,
+    setUniverseSearchPage,
   };
 }

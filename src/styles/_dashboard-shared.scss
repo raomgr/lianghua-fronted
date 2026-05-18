@@ -101,14 +101,9 @@
 
 .history-tools-label,
 .history-tools label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 0;
-  border-bottom: 1px solid rgba(32, 43, 35, 0.12);
-  border-radius: 0;
-  padding: 0 0 6px;
-  background: transparent;
+  display: grid;
+  gap: 6px;
+  min-width: 128px;
 }
 
 .history-actions {
@@ -125,18 +120,12 @@
   font-weight: 600;
 }
 
-.history-select {
-  border: 0;
-  background: transparent;
-  font: inherit;
-  color: var(--text);
-  font-size: 0.84rem;
-  font-weight: 600;
-  min-width: 76px;
+.history-select-control {
+  min-width: 160px;
 }
 
-.history-select.compact {
-  min-width: 50px;
+.history-select-control.compact {
+  min-width: 88px;
 }
 
 .sensitivity-echart {
@@ -193,81 +182,6 @@
   font: inherit;
   color: var(--text);
   background: rgba(255, 255, 255, 0.86);
-}
-
-.model-summary-grid .el-input,
-.model-summary-grid .el-input-number,
-.model-summary-grid .el-select,
-.model-summary-grid .el-date-editor {
-  width: 100%;
-  margin-top: 8px;
-}
-
-.model-summary-grid .el-input-number {
-  overflow: hidden;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 0 0 1px rgba(32, 43, 35, 0.1) inset;
-}
-
-.model-summary-grid .el-input-number .el-input__wrapper,
-.model-summary-grid .el-input__wrapper,
-.model-summary-grid .el-select__wrapper,
-.model-summary-grid .el-date-editor.el-input__wrapper {
-  background: rgba(255, 255, 255, 0.82);
-  border-radius: 8px;
-  box-shadow: 0 0 0 1px rgba(32, 43, 35, 0.1) inset;
-  min-height: 46px;
-}
-
-.model-summary-grid .el-input-number .el-input__wrapper {
-  background: transparent;
-  border-radius: 8px;
-  box-shadow: none;
-  padding-right: 40px;
-}
-
-.model-summary-grid .el-input-number.is-controls-right .el-input-number__decrease,
-.model-summary-grid .el-input-number.is-controls-right .el-input-number__increase {
-  width: 34px;
-  background: rgba(22, 101, 52, 0.04);
-  color: var(--accent);
-  border-color: rgba(32, 43, 35, 0.08);
-  border-left: 1px solid rgba(32, 43, 35, 0.08);
-  box-shadow: none;
-}
-
-.model-summary-grid .el-input-number.is-controls-right .el-input-number__decrease {
-  border-bottom: 1px solid rgba(32, 43, 35, 0.08);
-}
-
-.model-summary-grid .el-input-number .el-input__inner,
-.model-summary-grid .el-input__inner,
-.model-summary-grid .el-select__selected-item,
-.model-summary-grid .el-date-editor input {
-  color: var(--text);
-  font-size: 15px;
-}
-
-.model-summary-grid .el-select__caret,
-.model-summary-grid .el-input__icon,
-.model-summary-grid .el-input-number__decrease .el-icon,
-.model-summary-grid .el-input-number__increase .el-icon {
-  color: var(--muted);
-}
-
-.model-summary-grid .el-input__wrapper.is-focus,
-.model-summary-grid .el-select__wrapper.is-focused,
-.model-summary-grid .el-date-editor.el-input__wrapper.is-focus {
-  box-shadow:
-    0 0 0 1px rgba(22, 101, 52, 0.24) inset,
-    0 0 0 3px rgba(22, 101, 52, 0.08);
-}
-
-.model-summary-grid .el-input-number:focus-within {
-  box-shadow:
-    0 0 0 1px rgba(22, 101, 52, 0.24) inset,
-    0 0 0 3px rgba(22, 101, 52, 0.08);
 }
 
 .universe-input {

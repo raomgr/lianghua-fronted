@@ -143,41 +143,13 @@ const filteredStocks = computed(() => {
   font-size: 12px;
 }
 
-:deep(.research-picker-search .el-input__wrapper) {
-  border-radius: 10px;
-}
-
 :deep(.research-picker-table.el-table) {
-  --el-table-border-color: var(--line);
   --el-table-header-bg-color: rgba(243, 244, 233, 0.96);
   --el-table-row-hover-bg-color: rgba(243, 244, 233, 0.42);
   --el-table-current-row-bg-color: rgba(243, 244, 233, 0.82);
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  --el-table-text-color: var(--text);
+  --el-table-header-text-color: var(--muted);
   background: transparent;
-}
-
-:deep(.research-picker-table .el-table__inner-wrapper::before) {
-  display: none;
-}
-
-:deep(.research-picker-table .el-table__header-wrapper),
-:deep(.research-picker-table .el-table__body-wrapper),
-:deep(.research-picker-table .el-scrollbar__view),
-:deep(.research-picker-table .el-table__body),
-:deep(.research-picker-table colgroup col) {
-  width: 100% !important;
-}
-
-:deep(.research-picker-table .el-table__cell) {
-  padding: 12px 10px;
-  font-size: 14px;
-}
-
-:deep(.research-picker-table th.el-table__cell) {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
 }
 
 :deep(.research-picker-table .el-table__body tr.is-selected-row > td.el-table__cell) {
@@ -188,13 +160,7 @@ const filteredStocks = computed(() => {
 //  box-shadow: inset 3px 0 0 var(--accent);
 //}
 
-:deep(.research-picker-table .el-table__body tr.is-selected-row .research-picker-name),
-:deep(.research-picker-table .el-table__body tr.is-selected-row .positive),
-:deep(.research-picker-table .el-table__body tr.is-selected-row .negative) {
-  font-weight: 700;
-}
-
 :deep(.research-picker-table .el-table__body tr.is-selected-row .research-picker-stock span) {
-  color: var(--ink);
+  color: var(--text);
 }
 </style>

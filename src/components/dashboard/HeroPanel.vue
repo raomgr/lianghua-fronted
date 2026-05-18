@@ -19,12 +19,12 @@ defineEmits(["refresh", "train"]);
 
       <div class="hero-command">
         <div class="hero-actions hero-actions-top">
-          <button class="primary-button" :disabled="updating" @click="$emit('refresh')">
+          <el-button type="primary" size="large" :disabled="updating" @click="$emit('refresh')">
             {{ updating ? "同步中..." : "同步并重算数据" }}
-          </button>
-          <button class="secondary-button" :disabled="training" @click="$emit('train')">
+          </el-button>
+          <el-button plain size="large" :disabled="training" @click="$emit('train')">
             {{ training ? "训练中..." : "训练本地模型" }}
-          </button>
+          </el-button>
         </div>
         <div v-if="lastUpdateMessage || lastTrainMessage" class="hero-message-stack">
           <span v-if="lastUpdateMessage" class="update-message">同步：{{ lastUpdateMessage }}</span>

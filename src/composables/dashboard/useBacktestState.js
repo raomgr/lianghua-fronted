@@ -1,4 +1,5 @@
 import { computed, ref } from "vue";
+import { ElMessage } from "element-plus";
 import {
   fetchBacktest,
   fetchBacktestMonteCarlo,
@@ -293,7 +294,6 @@ export function useBacktestState(errorRef) {
   const backtestRunHistory = ref(readBacktestRunHistory());
   const activePresetId = ref(initialPreset?.id ?? "");
   const defaultPresetId = ref(storedDefaultPresetId);
-  const presetSyncMessage = ref("");
 
   const metricCards = computed(() => {
     if (!backtest.value) {
@@ -315,11 +315,6 @@ export function useBacktestState(errorRef) {
       { label: "Beta", value: Number(backtest.value.summary.beta || 0).toFixed(2), suffix: "" },
       { label: "平均换手", value: (backtest.value.summary.avg_turnover * 100).toFixed(2), suffix: "%" },
       { label: "累计成本", value: (backtest.value.summary.total_cost * 100).toFixed(2), suffix: "%" },
-      {
-        label: "回测模式",
-        value: backtest.value.summary.backtest_mode === "model" ? "模型驱动" : "规则打分",
-        suffix: "",
-      },
     ];
   });
 
@@ -544,7 +539,14 @@ export function useBacktestState(errorRef) {
   }
 
   function setPresetSyncMessage(value) {
-    presetSyncMessage.value = value;
+    if (!value) {
+      return;
+    }
+    ElMessage({
+      message: value,
+      grouping: true,
+      duration: 2200,
+    });
   }
 
   function ensureDefaultPresetStillExists() {
@@ -721,10 +723,7 @@ export function useBacktestState(errorRef) {
     const now = new Date().toISOString();
     backtestControls.value = normalizeControls(target.controls);
     activePresetId.value = target.id;
-    savedPresets.value = sortPresets(
-      savedPresets.value.map((item) => (item.id === presetId ? { ...item, last_used_at: now } : item)),
-      defaultPresetId.value,
-    );
+    savedPresets.value = savedPresets.value.map((item) => (item.id === presetId ? { ...item, last_used_at: now } : item));
     persistPresets(savedPresets.value);
   }
 
@@ -933,7 +932,6 @@ export function useBacktestState(errorRef) {
     filteredPresets,
     activePresetId,
     defaultPresetId,
-    presetSyncMessage,
     metricCards,
     latestRebalance,
     highlightedPreset,

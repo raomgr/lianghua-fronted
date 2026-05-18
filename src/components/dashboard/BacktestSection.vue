@@ -35,7 +35,6 @@ const props = defineProps({
   filteredPresets: { type: Array, default: () => [] },
   activePresetId: { type: String, default: "" },
   defaultPresetId: { type: String, default: "" },
-  presetSyncMessage: { type: String, default: "" },
 });
 
 const emit = defineEmits([
@@ -77,6 +76,11 @@ const historyWindow = ref("20");
 const historyXAxis = ref("annual_return");
 const historyYAxis = ref("sharpe");
 const historySize = ref("total_return");
+const presetPage = ref(1);
+const historyListPage = ref(1);
+
+const PRESET_PAGE_SIZE = 4;
+const HISTORY_LIST_PAGE_SIZE = 6;
 
 const historyWindowOptions = [
   { value: "10", label: "最近10次", count: 10 },
@@ -104,7 +108,6 @@ const analysisTab = ref("scan");
 const analysisTabs = [
   { value: "scan", label: "参数扫描", hint: "找更稳参数" },
   { value: "stability", label: "稳定性", hint: "看市场阶段表现" },
-  { value: "history", label: "运行历史", hint: "复用过往回测" },
   { value: "scenario", label: "情景对比", hint: "横向比较方案" },
   { value: "montecarlo", label: "Monte Carlo", hint: "看路径分布" },
 ];
@@ -127,7 +130,15 @@ const displayedRunHistory = computed(() => {
   }
   return list.slice(0, option.count);
 });
+const paginatedRunHistory = computed(() => {
+  const start = (historyListPage.value - 1) * HISTORY_LIST_PAGE_SIZE;
+  return displayedRunHistory.value.slice(start, start + HISTORY_LIST_PAGE_SIZE);
+});
 const selectedHistoryItem = computed(() => displayedRunHistory.value.find((item) => item.id === selectedHistoryId.value) ?? null);
+const paginatedPresets = computed(() => {
+  const start = (presetPage.value - 1) * PRESET_PAGE_SIZE;
+  return props.filteredPresets.slice(start, start + PRESET_PAGE_SIZE);
+});
 
 const sensitivityMetricOptions = [
   { value: "sharpe", label: "Sharpe" },
@@ -168,10 +179,36 @@ const stabilityMetricOptions = [
 watch(displayedRunHistory, (rows) => {
   if (!rows.length) {
     selectedHistoryId.value = "";
+    historyListPage.value = 1;
     return;
+  }
+  const maxPage = Math.max(1, Math.ceil(rows.length / HISTORY_LIST_PAGE_SIZE));
+  if (historyListPage.value > maxPage) {
+    historyListPage.value = maxPage;
   }
   if (!rows.some((item) => item.id === selectedHistoryId.value)) {
     selectedHistoryId.value = rows[0].id;
+  }
+}, { immediate: true });
+
+watch(() => props.filteredPresets.length, (count) => {
+  const maxPage = Math.max(1, Math.ceil(count / PRESET_PAGE_SIZE));
+  if (presetPage.value > maxPage) {
+    presetPage.value = maxPage;
+  }
+}, { immediate: true });
+
+watch(() => props.presetTagFilter, () => {
+  presetPage.value = 1;
+});
+
+watch(() => props.activePresetId, (presetId) => {
+  if (!presetId) {
+    return;
+  }
+  const index = props.filteredPresets.findIndex((item) => item.id === presetId);
+  if (index >= 0) {
+    presetPage.value = Math.floor(index / PRESET_PAGE_SIZE) + 1;
   }
 }, { immediate: true });
 
@@ -323,44 +360,6 @@ function handleRemoveTag() {
   emit("remove-tag", value);
 }
 
-function hexToRgba(hex, alpha) {
-  const normalized = String(hex || "").trim().replace("#", "");
-  const fullHex = normalized.length === 3
-    ? normalized.split("").map((char) => `${char}${char}`).join("")
-    : normalized;
-
-  if (!/^[0-9a-fA-F]{6}$/.test(fullHex)) {
-    return `rgba(75, 85, 99, ${alpha})`;
-  }
-
-  const red = Number.parseInt(fullHex.slice(0, 2), 16);
-  const green = Number.parseInt(fullHex.slice(2, 4), 16);
-  const blue = Number.parseInt(fullHex.slice(4, 6), 16);
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-}
-
-function getTagColor(tag) {
-  return props.presetTagColorMap?.[tag] || "#4b5563";
-}
-
-function getFilterChipStyle(tag) {
-  const color = getTagColor(tag);
-  return {
-    borderColor: hexToRgba(color, 0.3),
-    color,
-    background: hexToRgba(color, 0.08),
-  };
-}
-
-function getTagBadgeStyle(tag) {
-  const color = getTagColor(tag);
-  return {
-    borderColor: hexToRgba(color, 0.3),
-    color,
-    background: hexToRgba(color, 0.12),
-  };
-}
-
 function formatPct(value, digits = 2) {
   return `${(Number(value || 0) * 100).toFixed(digits)}%`;
 }
@@ -380,6 +379,10 @@ function formatSignalSource(value) {
 
 function handleSelectHistory(entryId) {
   selectedHistoryId.value = String(entryId || "");
+  const index = displayedRunHistory.value.findIndex((item) => item.id === selectedHistoryId.value);
+  if (index >= 0) {
+    historyListPage.value = Math.floor(index / HISTORY_LIST_PAGE_SIZE) + 1;
+  }
 }
 
 function applySelectedHistory() {
@@ -447,61 +450,73 @@ function applySensitivityRecommendation(point) {
 
 <template>
   <section class="section-panel backtest-workspace">
-    <div class="table-header workspace-header">
-      <div class="section-title">策略工作台</div>
-      <div class="workspace-meta">
-        <span class="workspace-pill">{{ activeModeLabel }}</span>
-        <span class="workspace-pill muted">{{ activeBenchmarkName }}</span>
-      </div>
-    </div>
-
     <section class="panel workspace-module workspace-results-module">
       <div class="workspace-block-head">
-        <div class="section-title">策略结果</div>
-        <button class="secondary-button" :disabled="!backtest?.equity_curve?.length" @click="$emit('export-backtest')">导出曲线CSV</button>
-      </div>
-
-      <div class="results-layout">
-        <div class="result-chart-area">
-          <div class="chart-frame workspace-chart-frame">
-            <EquityCurveChart :equity-curve="backtest.equity_curve" />
+        <div class="workspace-block-head-main">
+          <div class="section-title">策略结果</div>
+          <div class="workspace-meta inline">
+            <span class="workspace-pill">{{ activeModeLabel }}</span>
+            <span class="workspace-pill muted">{{ activeBenchmarkName }}</span>
           </div>
         </div>
-
-        <aside class="current-signal-panel">
-          <div class="signal-head">
-            <div>
-              <div class="section-title">当前信号</div>
-              <p class="subtle-caption">{{ activeSignalSourceLabel }} · {{ activeModelName }}</p>
-            </div>
-            <el-tag effect="light" round>{{ activeModeLabel }}</el-tag>
-          </div>
-          <template v-if="topPick">
-            <div class="focus-symbol">{{ topPick.symbol }}</div>
-            <div class="focus-name">{{ topPickName }}</div>
-            <div class="focus-score-band">Alpha Score {{ (topPick.score ?? 0).toFixed(3) }}</div>
-            <div class="signal-metric-list">
-              <div class="signal-metric">
-                <span>5日收益</span>
-                <strong>{{ formatPct(topPick.return_5d, 2) }}</strong>
-              </div>
-              <div class="signal-metric">
-                <span>20日动量</span>
-                <strong>{{ formatPct(topPick.momentum_20, 2) }}</strong>
-              </div>
-              <div class="signal-metric">
-                <span>20日波动</span>
-                <strong>{{ formatPct(topPick.volatility_20, 2) }}</strong>
-              </div>
-              <div class="signal-metric">
-                <span>5日量比</span>
-                <strong>{{ Number(topPick.volume_ratio_5 || 0).toFixed(2) }}</strong>
-              </div>
-            </div>
-          </template>
-          <div v-else class="compact-empty compact-empty-inline">暂无焦点股票</div>
-        </aside>
+        <el-button plain :disabled="!backtest?.equity_curve?.length" @click="$emit('export-backtest')">导出曲线CSV</el-button>
       </div>
+
+      <el-row :gutter="18" class="results-layout">
+        <el-col :xs="24" :lg="16" class="result-col">
+          <div class="result-chart-area">
+            <div class="chart-frame workspace-chart-frame">
+              <EquityCurveChart :equity-curve="backtest.equity_curve" />
+            </div>
+          </div>
+        </el-col>
+
+        <el-col :xs="24" :lg="8" class="result-col">
+          <aside class="current-signal-panel">
+            <div class="signal-head">
+              <div>
+                <div class="section-title">当前信号</div>
+                <p class="subtle-caption signal-subhead">{{ activeSignalSourceLabel }} · {{ activeModelName }}</p>
+              </div>
+              <el-tag effect="light" round>{{ activeModeLabel }}</el-tag>
+            </div>
+            <template v-if="topPick">
+              <div class="signal-focus-hero">
+                <div class="signal-focus-main">
+                  <div class="focus-symbol">{{ topPick.symbol }}</div>
+                  <div class="focus-name">{{ topPickName }}</div>
+                </div>
+                <div class="signal-score-card">
+                  <span>Alpha Score</span>
+                  <strong>{{ (topPick.score ?? 0).toFixed(3) }}</strong>
+                </div>
+              </div>
+              <div class="signal-metric-section">
+                <div class="signal-section-title">关键指标</div>
+                <div class="signal-metric-list">
+                  <div class="signal-metric">
+                    <span>5日收益</span>
+                    <strong>{{ formatPct(topPick.return_5d, 2) }}</strong>
+                  </div>
+                  <div class="signal-metric">
+                    <span>20日动量</span>
+                    <strong>{{ formatPct(topPick.momentum_20, 2) }}</strong>
+                  </div>
+                  <div class="signal-metric">
+                    <span>20日波动</span>
+                    <strong>{{ formatPct(topPick.volatility_20, 2) }}</strong>
+                  </div>
+                  <div class="signal-metric">
+                    <span>5日量比</span>
+                    <strong>{{ Number(topPick.volume_ratio_5 || 0).toFixed(2) }}</strong>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <div v-else class="compact-empty compact-empty-inline">暂无焦点股票</div>
+          </aside>
+        </el-col>
+      </el-row>
 
       <div class="result-summary-strip">
         <div class="result-summary-item primary">
@@ -531,29 +546,28 @@ function applySensitivityRecommendation(point) {
       <div class="workspace-block-head">
         <div class="section-title">回测参数与方案</div>
         <div class="hero-actions compact-actions">
-          <button class="primary-button" :disabled="backtesting" @click="$emit('run')">
+          <el-button type="primary" size="large" :disabled="backtesting" @click="$emit('run')">
             {{ backtesting ? "回测中..." : "重新运行回测" }}
-          </button>
-          <button class="secondary-button" :disabled="!backtestRunHistory.length" @click="analysisTab = 'history'">查看运行历史</button>
+          </el-button>
         </div>
       </div>
 
       <div class="control-stack">
-        <div class="control-grid">
-          <section class="control-section control-card">
+        <section class="control-section control-card control-overview-card">
           <div class="control-section-head">
             <div class="section-title">参数设置</div>
           </div>
           <el-form label-position="top" class="parameter-form">
-            <div class="parameter-grid">
+            <div class="parameter-grid parameter-grid-compact">
               <el-form-item label="信号来源">
-                <el-select :model-value="controls.backtest_mode" @change="updateControl('backtest_mode', $event)">
+                <el-select size="large" :model-value="controls.backtest_mode" @change="updateControl('backtest_mode', $event)">
                   <el-option label="规则打分" value="rule" />
                   <el-option label="模型驱动" value="model" />
                 </el-select>
               </el-form-item>
               <el-form-item label="调仓天数">
                 <el-input-number
+                  size="large"
                   :model-value="controls.rebalance_days"
                   :min="1"
                   :max="20"
@@ -563,6 +577,7 @@ function applySensitivityRecommendation(point) {
               </el-form-item>
               <el-form-item label="持仓数量">
                 <el-input-number
+                  size="large"
                   :model-value="controls.top_n"
                   :min="1"
                   :max="10"
@@ -572,6 +587,7 @@ function applySensitivityRecommendation(point) {
               </el-form-item>
               <el-form-item label="手续费(bps)">
                 <el-input-number
+                  size="large"
                   :model-value="controls.trading_cost_bps"
                   :min="0"
                   :max="100"
@@ -581,6 +597,7 @@ function applySensitivityRecommendation(point) {
               </el-form-item>
               <el-form-item label="滑点(bps)">
                 <el-input-number
+                  size="large"
                   :model-value="controls.slippage_bps"
                   :min="0"
                   :max="100"
@@ -590,69 +607,61 @@ function applySensitivityRecommendation(point) {
               </el-form-item>
             </div>
           </el-form>
-          </section>
 
-          <section class="control-section control-card">
-          <div class="control-section-head">
-            <div class="section-title">当前配置摘要</div>
-          </div>
-          <div class="config-definition-grid">
-            <div class="workspace-kv">
+          <div class="control-summary-strip">
+            <div class="control-summary-item">
               <span>回测模式</span>
               <strong>{{ activeModeLabel }}</strong>
             </div>
-            <div class="workspace-kv">
+            <div class="control-summary-item">
               <span>信号来源</span>
               <strong>{{ activeSignalSourceLabel }}</strong>
             </div>
-            <div class="workspace-kv">
+            <div class="control-summary-item">
               <span>基准</span>
               <strong>{{ activeBenchmarkName }}</strong>
             </div>
-            <div class="workspace-kv">
+            <div class="control-summary-item">
               <span>当前方案</span>
               <strong>{{ activePresetId ? "已套用预设" : "临时参数" }}</strong>
             </div>
-            <div class="workspace-kv">
+            <div class="control-summary-item">
               <span>调仓 / 持仓</span>
               <strong>{{ controls.rebalance_days }}天 / {{ controls.top_n }}只</strong>
             </div>
-            <div class="workspace-kv">
+            <div class="control-summary-item">
               <span>成本设置</span>
               <strong>{{ controls.trading_cost_bps }} + {{ controls.slippage_bps }} bps</strong>
             </div>
           </div>
-          </section>
-        </div>
+        </section>
 
         <section class="control-section control-card control-card-wide">
           <div class="control-section-head">
             <div class="section-title">方案管理</div>
             <div class="preset-sync-row compact-row">
-              <button class="secondary-button preset-sync-button" :disabled="!savedPresets.length" @click="$emit('export-presets')">
+              <el-button plain class="preset-sync-button" :disabled="!savedPresets.length" @click="$emit('export-presets')">
                 导出 JSON
-              </button>
-              <label class="secondary-button preset-sync-button file-trigger">
-                导入 JSON
+              </el-button>
+              <label class="file-trigger">
+                <el-button plain class="preset-sync-button" tag="span">导入 JSON</el-button>
                 <input class="file-hidden-input" type="file" accept="application/json,.json" @change="handleImportFile">
               </label>
             </div>
           </div>
           <div class="preset-toolbar preset-toolbar-wide">
-            <el-input v-model="presetNameModel" placeholder="给这组参数起个名字" />
-            <el-select v-model="presetTagModel">
+            <el-input v-model="presetNameModel" size="large" placeholder="给这组参数起个名字" />
+            <el-select v-model="presetTagModel" size="large">
               <el-option v-for="tag in presetTagOptions" :key="tag" :label="tag" :value="tag" />
             </el-select>
-            <button class="secondary-button" @click="$emit('save-preset')">保存方案</button>
+            <el-button type="primary" size="large" @click="$emit('save-preset')">保存方案</el-button>
           </div>
-          <span v-if="presetSyncMessage" class="subtle-caption">{{ presetSyncMessage }}</span>
           <div class="preset-filter-row">
             <button
               v-for="pill in presetFilterPills"
               :key="`filter-${pill.tag}`"
               class="preset-filter-chip"
               :class="{ active: pill.tag === presetTagFilter }"
-              :style="getFilterChipStyle(pill.tag)"
               @click="$emit('update:presetTagFilter', pill.tag)"
             >
               <span>{{ pill.tag }}</span>
@@ -663,7 +672,7 @@ function applySensitivityRecommendation(point) {
           </div>
           <div class="preset-strip">
             <article
-              v-for="preset in filteredPresets"
+              v-for="preset in paginatedPresets"
               :key="preset.id"
               class="preset-chip"
               :class="{ active: preset.id === activePresetId, pinned: preset.id === defaultPresetId }"
@@ -675,29 +684,124 @@ function applySensitivityRecommendation(point) {
             >
               <div class="preset-chip-head">
                 <span class="preset-chip-title">{{ preset.name }}</span>
-                <small class="preset-tag-badge" :style="getTagBadgeStyle(preset.tag || '未分类')">{{ preset.tag || "未分类" }}</small>
+                <div class="preset-chip-badges">
+                  <small class="preset-tag-badge">{{ preset.tag || "未分类" }}</small>
+                </div>
               </div>
               <small class="preset-chip-summary">
                 {{ preset.controls.backtest_mode === "model" ? "模型" : "规则" }} / {{ preset.controls.rebalance_days }}天 / {{ preset.controls.top_n }}股 / {{ preset.controls.trading_cost_bps }}-{{ preset.controls.slippage_bps }}
               </small>
               <small v-if="preset.last_used_at" class="preset-meta">最近使用 {{ formatPresetTime(preset.last_used_at) }}</small>
               <div class="preset-chip-actions">
-                <button
+                <el-button
+                  link
+                  size="small"
                   class="preset-action"
-                  :class="{ active: preset.id === defaultPresetId }"
+                  :type="preset.id === defaultPresetId ? 'success' : 'default'"
                   @click.stop="$emit('set-default-preset', preset.id)"
                 >
-                  {{ preset.id === defaultPresetId ? "默认" : "设为默认" }}
-                </button>
-                <button class="preset-action" @click.stop="handleRetagPreset(preset)">标签</button>
-                <button class="preset-action" @click.stop="$emit('duplicate-preset', preset.id)">复制</button>
-                <button class="preset-action" @click.stop="handleRenamePreset(preset)">改名</button>
-                <button class="preset-action danger" @click.stop="$emit('delete-preset', preset.id)">删除</button>
+                  {{ preset.id === defaultPresetId ? "默认" : "设默认" }}
+                </el-button>
+                <el-button link size="small" class="preset-action" @click.stop="handleRetagPreset(preset)">标签</el-button>
+                <el-button link size="small" class="preset-action" @click.stop="$emit('duplicate-preset', preset.id)">复制</el-button>
+                <el-button link size="small" class="preset-action" @click.stop="handleRenamePreset(preset)">改名</el-button>
+                <el-button link size="small" type="danger" class="preset-action danger" @click.stop="$emit('delete-preset', preset.id)">删除</el-button>
               </div>
             </article>
             <div v-if="!savedPresets.length" class="subtle-caption preset-empty">暂无方案。</div>
             <div v-else-if="!filteredPresets.length" class="subtle-caption preset-empty">当前标签下暂无方案。</div>
           </div>
+          <div v-if="filteredPresets.length > PRESET_PAGE_SIZE" class="list-pagination">
+            <el-pagination
+              v-model:current-page="presetPage"
+              :page-size="PRESET_PAGE_SIZE"
+              layout="prev, pager, next, total"
+              background
+              :total="filteredPresets.length"
+            />
+          </div>
+        </section>
+
+        <section class="control-section control-card control-card-wide">
+          <div class="control-section-head">
+            <div class="section-title">运行历史</div>
+            <div class="history-actions">
+              <el-button plain :disabled="!backtestRunHistory.length" @click="$emit('export-history')">导出历史CSV</el-button>
+              <el-button plain :disabled="!selectedHistoryItem" @click="applySelectedHistory">套用已选</el-button>
+              <el-button type="danger" plain :disabled="!backtestRunHistory.length" @click="$emit('clear-history')">清空</el-button>
+            </div>
+          </div>
+          <div class="history-tools">
+            <div class="history-tools-label">
+              <span>范围</span>
+              <el-select v-model="historyWindow" class="history-select-control">
+                <el-option v-for="item in historyWindowOptions" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+            </div>
+            <div class="history-tools-label">
+              <span>X轴</span>
+              <el-select v-model="historyXAxis" class="history-select-control">
+                <el-option v-for="item in historyMetricOptions" :key="`x-${item.value}`" :label="item.label" :value="item.value" />
+              </el-select>
+            </div>
+            <div class="history-tools-label">
+              <span>Y轴</span>
+              <el-select v-model="historyYAxis" class="history-select-control">
+                <el-option v-for="item in historyMetricOptions" :key="`y-${item.value}`" :label="item.label" :value="item.value" />
+              </el-select>
+            </div>
+            <div class="history-tools-label">
+              <span>点大小</span>
+              <el-select v-model="historySize" class="history-select-control">
+                <el-option v-for="item in historyMetricOptions" :key="`size-${item.value}`" :label="item.label" :value="item.value" />
+              </el-select>
+            </div>
+          </div>
+          <div v-if="displayedRunHistory.length" class="chart-frame history-chart-frame">
+            <BacktestRunScatterChart
+              :runs="displayedRunHistory"
+              :x-metric="historyXAxis"
+              :y-metric="historyYAxis"
+              :size-metric="historySize"
+              :selected-id="selectedHistoryId"
+              @select="handleSelectHistory"
+            />
+          </div>
+          <template v-if="displayedRunHistory.length">
+            <div class="history-list card-scroll">
+              <div
+                v-for="item in paginatedRunHistory"
+                :key="item.id"
+                class="history-row model-run-row clickable-row run-history-row"
+                :class="{ selected: item.id === selectedHistoryId }"
+                @click="handleSelectHistory(item.id)"
+              >
+                <div class="run-history-main">
+                  <strong class="run-history-time">{{ formatPresetTime(item.run_at) }}</strong>
+                  <p class="run-history-summary subtle-caption">
+                    {{ item.controls.rebalance_days }}天 / {{ item.controls.top_n }}股 / {{ item.controls.trading_cost_bps }}-{{ item.controls.slippage_bps }}
+                  </p>
+                </div>
+                <div class="run-history-metrics">
+                  <strong class="run-history-kpi">年化 {{ formatPct(item.summary.annual_return, 2) }}</strong>
+                  <p class="run-history-meta subtle-caption">Sharpe {{ Number(item.summary.sharpe || 0).toFixed(2) }} · 回撤 {{ formatPct(item.summary.max_drawdown, 2) }}</p>
+                </div>
+                <div class="run-history-action">
+                  <el-button plain @click.stop="$emit('apply-history', item.id)">套用</el-button>
+                </div>
+              </div>
+            </div>
+            <div v-if="displayedRunHistory.length > HISTORY_LIST_PAGE_SIZE" class="list-pagination">
+              <el-pagination
+                v-model:current-page="historyListPage"
+                :page-size="HISTORY_LIST_PAGE_SIZE"
+                layout="prev, pager, next, total"
+                background
+                :total="displayedRunHistory.length"
+              />
+            </div>
+          </template>
+          <div v-else class="compact-empty">暂无回测历史。</div>
         </section>
       </div>
     </section>
@@ -726,47 +830,56 @@ function applySensitivityRecommendation(point) {
             <section class="analysis-surface">
               <div class="table-header">
                 <div class="section-title">参数敏感性扫描</div>
-                <div class="history-actions">
-                  <label class="history-tools-label">
+              </div>
+              <div class="analysis-control-bar">
+                <div class="history-tools">
+                  <div class="history-tools-label">
                     <span>扫描宽度</span>
-                    <select v-model="scanWidth" class="history-select compact">
-                      <option :value="1">窄</option>
-                      <option :value="2">中</option>
-                      <option :value="3">宽</option>
-                    </select>
-                  </label>
-                  <button class="secondary-button" :disabled="sensitivityLoading" @click="triggerSensitivityScan">
+                    <el-select v-model="scanWidth" class="history-select-control compact">
+                      <el-option label="窄" :value="1" />
+                      <el-option label="中" :value="2" />
+                      <el-option label="宽" :value="3" />
+                    </el-select>
+                  </div>
+                  <template v-if="sensitivityRows.length">
+                    <div class="history-tools-label">
+                      <span>指标</span>
+                      <el-select v-model="sensitivityMetric" class="history-select-control">
+                        <el-option v-for="item in sensitivityMetricOptions" :key="item.value" :label="item.label" :value="item.value" />
+                      </el-select>
+                    </div>
+                    <div class="history-tools-label">
+                      <span>成本场景</span>
+                      <el-select v-model="sensitivityCost" class="history-select-control">
+                        <el-option
+                          v-for="value in sensitivityCostOptions"
+                          :key="`cost-${value}`"
+                          :label="`${value.toFixed(2)} bps`"
+                          :value="value"
+                        />
+                      </el-select>
+                    </div>
+                  </template>
+                </div>
+                <div class="history-actions">
+                  <el-button type="primary" :disabled="sensitivityLoading" @click="triggerSensitivityScan">
                     {{ sensitivityLoading ? "扫描中..." : "运行参数扫描" }}
-                  </button>
-                  <button class="secondary-button" :disabled="!selectedSensitivityPoint" @click="applySelectedSensitivity">套用已选参数</button>
+                  </el-button>
+                  <el-button plain :disabled="!selectedSensitivityPoint" @click="applySelectedSensitivity">套用已选参数</el-button>
+                  <template v-if="sensitivityRows.length">
+                    <el-button plain :disabled="!sensitivityBestSharpe" @click="applySensitivityRecommendation(sensitivityBestSharpe)">
+                      最佳Sharpe
+                    </el-button>
+                    <el-button plain :disabled="!sensitivityBestAnnual" @click="applySensitivityRecommendation(sensitivityBestAnnual)">
+                      最佳年化
+                    </el-button>
+                    <el-button plain :disabled="!sensitivityBestCalmar" @click="applySensitivityRecommendation(sensitivityBestCalmar)">
+                      最佳Calmar
+                    </el-button>
+                  </template>
                 </div>
               </div>
               <template v-if="sensitivityRows.length">
-                <div class="history-actions">
-                  <button class="secondary-button" :disabled="!sensitivityBestSharpe" @click="applySensitivityRecommendation(sensitivityBestSharpe)">
-                    最佳Sharpe
-                  </button>
-                  <button class="secondary-button" :disabled="!sensitivityBestAnnual" @click="applySensitivityRecommendation(sensitivityBestAnnual)">
-                    最佳年化
-                  </button>
-                  <button class="secondary-button" :disabled="!sensitivityBestCalmar" @click="applySensitivityRecommendation(sensitivityBestCalmar)">
-                    最佳Calmar
-                  </button>
-                </div>
-                <div class="history-tools">
-                  <label>
-                    <span>指标</span>
-                    <select v-model="sensitivityMetric" class="history-select">
-                      <option v-for="item in sensitivityMetricOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>成本场景</span>
-                    <select v-model="sensitivityCost" class="history-select">
-                      <option v-for="value in sensitivityCostOptions" :key="`cost-${value}`" :value="value">{{ value.toFixed(2) }} bps</option>
-                    </select>
-                  </label>
-                </div>
                 <div class="chart-frame history-chart-frame">
                   <BacktestSensitivityHeatmap
                     :rows="sensitivityRows"
@@ -792,7 +905,7 @@ function applySensitivityRecommendation(point) {
                       <strong>{{ formatSensitivityValue(row) }}</strong>
                       <p class="subtle-caption">年化 {{ formatPct(row.annual_return, 2) }} · Sharpe {{ Number(row.sharpe || 0).toFixed(2) }}</p>
                     </div>
-                    <button class="secondary-button" @click.stop="$emit('apply-sensitivity', row)">套用</button>
+                    <el-button plain @click.stop="$emit('apply-sensitivity', row)">套用</el-button>
                   </div>
                 </div>
               </template>
@@ -828,32 +941,33 @@ function applySensitivityRecommendation(point) {
             <section class="analysis-surface">
               <div class="table-header">
                 <div class="section-title">滚动稳定性诊断</div>
-                <div class="history-actions">
-                  <label class="history-tools-label">
+              </div>
+              <div class="analysis-control-bar">
+                <div class="history-tools">
+                  <div class="history-tools-label">
+                    <span>指标</span>
+                    <el-select v-model="stabilityMetric" class="history-select-control">
+                      <el-option v-for="item in stabilityMetricOptions" :key="item.value" :label="item.label" :value="item.value" />
+                    </el-select>
+                  </div>
+                  <div class="history-tools-label">
                     <span>窗口</span>
-                    <select v-model="stabilityWindow" class="history-select compact">
-                      <option :value="10">10</option>
-                      <option :value="15">15</option>
-                      <option :value="20">20</option>
-                      <option :value="30">30</option>
-                      <option :value="40">40</option>
-                    </select>
-                  </label>
-                  <button class="secondary-button" :disabled="stabilityLoading" @click="triggerStabilityRun">
+                    <el-select v-model="stabilityWindow" class="history-select-control compact">
+                      <el-option :value="10" label="10" />
+                      <el-option :value="15" label="15" />
+                      <el-option :value="20" label="20" />
+                      <el-option :value="30" label="30" />
+                      <el-option :value="40" label="40" />
+                    </el-select>
+                  </div>
+                </div>
+                <div class="history-actions">
+                  <el-button type="primary" :disabled="stabilityLoading" @click="triggerStabilityRun">
                     {{ stabilityLoading ? "分析中..." : "运行稳定性分析" }}
-                  </button>
+                  </el-button>
                 </div>
               </div>
               <template v-if="stabilityRollingPoints.length">
-                <div class="history-tools">
-                  <label>
-                    <span>指标</span>
-                    <select v-model="stabilityMetric" class="history-select">
-                      <option v-for="item in stabilityMetricOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
-                    </select>
-                  </label>
-                  <span class="subtle-caption">滚动窗口 {{ props.stabilityReport?.rolling_window || stabilityWindow }} 天</span>
-                </div>
                 <div class="chart-frame history-chart-frame">
                   <BacktestStabilityChart :points="stabilityRollingPoints" :metric="stabilityMetric" />
                 </div>
@@ -884,22 +998,28 @@ function applySensitivityRecommendation(point) {
                 <div class="section-title">月度与市场状态表现</div>
               </div>
               <template v-if="stabilityMonthlyPoints.length">
-                <div class="history-list card-scroll">
-                  <div v-for="row in stabilityMonthlyPoints.slice(-8).reverse()" :key="`month-${row.month}`" class="history-row model-run-row">
-                    <span>{{ row.month }}</span>
-                    <strong :class="{ positive: row.excess_return >= 0, negative: row.excess_return < 0 }">
-                      超额 {{ formatPct(row.excess_return, 2) }}
-                    </strong>
-                    <span>胜率 {{ (Number(row.win_rate || 0) * 100).toFixed(1) }}%</span>
+                <div class="analysis-subsection">
+                  <div class="analysis-subsection-title">月度表现</div>
+                  <div class="history-list card-scroll">
+                    <div v-for="row in stabilityMonthlyPoints.slice(-8).reverse()" :key="`month-${row.month}`" class="history-row model-run-row">
+                      <span>{{ row.month }}</span>
+                      <strong :class="{ positive: row.excess_return >= 0, negative: row.excess_return < 0 }">
+                        超额 {{ formatPct(row.excess_return, 2) }}
+                      </strong>
+                      <span>胜率 {{ (Number(row.win_rate || 0) * 100).toFixed(1) }}%</span>
+                    </div>
                   </div>
                 </div>
-                <div class="history-list">
-                  <div v-for="row in stabilityRegimeStats" :key="`regime-${row.regime}`" class="history-row model-run-row">
-                    <span>{{ row.regime === "up" ? "上涨日" : row.regime === "down" ? "下跌日" : "平盘日" }}</span>
-                    <strong>{{ row.days }} 天</strong>
-                    <span :class="{ positive: row.annualized_excess_return >= 0, negative: row.annualized_excess_return < 0 }">
-                      年化超额 {{ formatPct(row.annualized_excess_return, 2) }}
-                    </span>
+                <div class="analysis-subsection">
+                  <div class="analysis-subsection-title">市场状态</div>
+                  <div class="history-list">
+                    <div v-for="row in stabilityRegimeStats" :key="`regime-${row.regime}`" class="history-row model-run-row">
+                      <span>{{ row.regime === "up" ? "上涨日" : row.regime === "down" ? "下跌日" : "平盘日" }}</span>
+                      <strong>{{ row.days }} 天</strong>
+                      <span :class="{ positive: row.annualized_excess_return >= 0, negative: row.annualized_excess_return < 0 }">
+                        年化超额 {{ formatPct(row.annualized_excess_return, 2) }}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </template>
@@ -908,88 +1028,17 @@ function applySensitivityRecommendation(point) {
           </div>
         </template>
 
-        <template v-else-if="analysisTab === 'history'">
-          <section class="analysis-surface">
-            <div class="table-header">
-              <div class="section-title">回测运行历史</div>
-              <div class="history-actions">
-                <button class="secondary-button" :disabled="!backtestRunHistory.length" @click="$emit('export-history')">导出历史CSV</button>
-                <button class="secondary-button" :disabled="!selectedHistoryItem" @click="applySelectedHistory">套用已选</button>
-                <button class="secondary-button" :disabled="!backtestRunHistory.length" @click="$emit('clear-history')">清空</button>
-              </div>
-            </div>
-            <div class="history-tools">
-              <label>
-                <span>范围</span>
-                <select v-model="historyWindow" class="history-select">
-                  <option v-for="item in historyWindowOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
-                </select>
-              </label>
-              <label>
-                <span>X轴</span>
-                <select v-model="historyXAxis" class="history-select">
-                  <option v-for="item in historyMetricOptions" :key="`x-${item.value}`" :value="item.value">{{ item.label }}</option>
-                </select>
-              </label>
-              <label>
-                <span>Y轴</span>
-                <select v-model="historyYAxis" class="history-select">
-                  <option v-for="item in historyMetricOptions" :key="`y-${item.value}`" :value="item.value">{{ item.label }}</option>
-                </select>
-              </label>
-              <label>
-                <span>点大小</span>
-                <select v-model="historySize" class="history-select">
-                  <option v-for="item in historyMetricOptions" :key="`size-${item.value}`" :value="item.value">{{ item.label }}</option>
-                </select>
-              </label>
-            </div>
-            <div v-if="displayedRunHistory.length" class="chart-frame history-chart-frame">
-              <BacktestRunScatterChart
-                :runs="displayedRunHistory"
-                :x-metric="historyXAxis"
-                :y-metric="historyYAxis"
-                :size-metric="historySize"
-                :selected-id="selectedHistoryId"
-                @select="handleSelectHistory"
-              />
-            </div>
-            <div v-if="displayedRunHistory.length" class="history-list card-scroll">
-              <div
-                v-for="item in displayedRunHistory"
-                :key="item.id"
-                class="history-row model-run-row clickable-row"
-                :class="{ selected: item.id === selectedHistoryId }"
-                @click="handleSelectHistory(item.id)"
-              >
-                <div>
-                  <strong>{{ formatPresetTime(item.run_at) }}</strong>
-                  <p class="subtle-caption">
-                    {{ item.controls.rebalance_days }}天 / {{ item.controls.top_n }}股 / {{ item.controls.trading_cost_bps }}-{{ item.controls.slippage_bps }}
-                  </p>
-                </div>
-                <div>
-                  <strong>年化 {{ formatPct(item.summary.annual_return, 2) }}</strong>
-                  <p class="subtle-caption">Sharpe {{ Number(item.summary.sharpe || 0).toFixed(2) }} · 回撤 {{ formatPct(item.summary.max_drawdown, 2) }}</p>
-                </div>
-                <button class="secondary-button" @click.stop="$emit('apply-history', item.id)">套用</button>
-              </div>
-            </div>
-            <div v-else class="compact-empty">暂无回测历史。</div>
-          </section>
-        </template>
-
         <template v-else-if="analysisTab === 'scenario'">
           <section class="analysis-surface">
-            <div class="table-header">
-              <div class="section-title">策略情景对比</div>
-              <div class="history-actions">
-                <button class="secondary-button" :disabled="scenarioLoading" @click="triggerScenarioRun">
+              <div class="table-header">
+                <div class="section-title">策略情景对比</div>
+                <div class="history-actions">
+                <el-button type="primary" :disabled="scenarioLoading" @click="triggerScenarioRun">
                   {{ scenarioLoading ? "对比中..." : "运行情景对比" }}
-                </button>
-                <button class="secondary-button" :disabled="!scenarioChampion" @click="applyScenario(scenarioChampion)">
+                </el-button>
+                <el-button plain :disabled="!scenarioChampion" @click="applyScenario(scenarioChampion)">
                   套用冠军方案
-                </button>
+                </el-button>
               </div>
             </div>
             <template v-if="scenarioRows.length">
@@ -1010,7 +1059,7 @@ function applySensitivityRecommendation(point) {
                     </strong>
                     <p class="subtle-caption">Sharpe {{ Number(row.sharpe || 0).toFixed(2) }} · 回撤 {{ formatPct(row.max_drawdown, 2) }}</p>
                   </div>
-                  <button class="secondary-button" @click="applyScenario(row)">套用</button>
+                  <el-button plain @click="applyScenario(row)">套用</el-button>
                 </div>
               </div>
             </template>
@@ -1022,58 +1071,72 @@ function applySensitivityRecommendation(point) {
           <section class="analysis-surface">
             <div class="table-header">
               <div class="section-title">Monte Carlo 鲁棒性分析</div>
-              <div class="history-actions">
-                <label class="history-tools-label">
+            </div>
+            <div class="analysis-control-bar">
+              <div class="history-tools">
+                <div class="history-tools-label">
                   <span>试验数</span>
-                  <select v-model="monteCarloTrials" class="history-select compact">
-                    <option :value="100">100</option>
-                    <option :value="300">300</option>
-                    <option :value="500">500</option>
-                    <option :value="800">800</option>
-                  </select>
-                </label>
-                <button class="secondary-button" :disabled="monteCarloLoading" @click="triggerMonteCarloRun">
+                  <el-select v-model="monteCarloTrials" class="history-select-control compact">
+                    <el-option :value="100" label="100" />
+                    <el-option :value="300" label="300" />
+                    <el-option :value="500" label="500" />
+                    <el-option :value="800" label="800" />
+                  </el-select>
+                </div>
+              </div>
+              <div class="history-actions">
+                <el-button type="primary" :disabled="monteCarloLoading" @click="triggerMonteCarloRun">
                   {{ monteCarloLoading ? "分析中..." : "运行 Monte Carlo" }}
-                </button>
+                </el-button>
               </div>
             </div>
-            <div v-if="monteCarloSummary" class="insight-grid balanced-grid-two">
-              <section class="analysis-surface-sub">
-                <div class="model-summary-grid compact-grid">
+            <div v-if="monteCarloSummary" class="analysis-stack compact-stack">
+              <div class="monte-summary-grid">
+                <div class="result-summary-item">
                   <div>
                     <span>年化 P5</span>
                     <strong>{{ formatPct(monteCarloSummary.annual_return_p5, 2) }}</strong>
                   </div>
+                </div>
+                <div class="result-summary-item">
                   <div>
                     <span>年化 P50</span>
                     <strong>{{ formatPct(monteCarloSummary.annual_return_p50, 2) }}</strong>
                   </div>
+                </div>
+                <div class="result-summary-item">
                   <div>
                     <span>年化 P95</span>
                     <strong>{{ formatPct(monteCarloSummary.annual_return_p95, 2) }}</strong>
                   </div>
+                </div>
+                <div class="result-summary-item">
                   <div>
                     <span>亏损概率</span>
                     <strong>{{ (Number(monteCarloSummary.loss_probability || 0) * 100).toFixed(1) }}%</strong>
                   </div>
+                </div>
+                <div class="result-summary-item">
                   <div>
                     <span>跑输基准概率</span>
                     <strong>{{ (Number(monteCarloSummary.under_benchmark_probability || 0) * 100).toFixed(1) }}%</strong>
                   </div>
+                </div>
+                <div class="result-summary-item">
                   <div>
                     <span>回撤P95</span>
                     <strong>{{ formatPct(monteCarloSummary.max_drawdown_p95, 2) }}</strong>
                   </div>
                 </div>
+              </div>
+              <div class="monte-chart-grid">
                 <div class="chart-frame history-chart-frame">
                   <BacktestMonteCarloHistogram :bins="monteCarloAnnualBins" title="年化收益分布(%)" />
                 </div>
-              </section>
-              <section class="analysis-surface-sub">
                 <div class="chart-frame history-chart-frame">
                   <BacktestMonteCarloHistogram :bins="monteCarloDrawdownBins" title="最大回撤分布(%)" />
                 </div>
-              </section>
+              </div>
             </div>
             <div v-else class="compact-empty">暂无 Monte Carlo 结果。</div>
           </section>
@@ -1089,15 +1152,16 @@ function applySensitivityRecommendation(point) {
   gap: 20px;
 }
 
-.workspace-header {
-  align-items: flex-start;
-}
-
 .workspace-meta {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.workspace-meta.inline {
+  justify-content: flex-start;
+  margin-top: 8px;
 }
 
 .workspace-pill {
@@ -1151,17 +1215,29 @@ function applySensitivityRecommendation(point) {
 }
 
 .results-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
-  gap: 18px;
   align-items: stretch;
+}
+
+.result-col {
+  min-width: 0;
+  display: flex;
 }
 
 .result-chart-area {
   min-width: 0;
+  width: 100%;
+  display: flex;
 }
 
 .workspace-chart-frame {
+  min-height: 320px;
+  width: 100%;
+  height: 100%;
+}
+
+.workspace-chart-frame :deep(.equity-echart),
+.workspace-chart-frame :deep(.echart-shell) {
+  height: 100%;
   min-height: 320px;
 }
 
@@ -1170,6 +1246,10 @@ function applySensitivityRecommendation(point) {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.workspace-block-head-main {
+  min-width: 0;
 }
 
 .workspace-block-head.compact {
@@ -1181,10 +1261,13 @@ function applySensitivityRecommendation(point) {
   align-content: start;
   gap: 14px;
   min-width: 0;
+  width: 100%;
   padding: 18px;
   border: 1px solid rgba(32, 43, 35, 0.08);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.48);
+  height: 100%;
+  grid-auto-rows: min-content;
 }
 
 .signal-head {
@@ -1194,15 +1277,69 @@ function applySensitivityRecommendation(point) {
   gap: 12px;
 }
 
+.signal-subhead,
+.signal-section-title {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.signal-subhead {
+  margin-top: 4px;
+}
+
+.signal-focus-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid rgba(32, 43, 35, 0.08);
+}
+
+.signal-focus-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.signal-score-card {
+  min-width: 120px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(22, 101, 52, 0.08);
+  border: 1px solid rgba(22, 101, 52, 0.1);
+  text-align: right;
+}
+
+.signal-score-card span {
+  display: block;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.signal-score-card strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--accent);
+  font-size: 28px;
+  line-height: 1;
+}
+
 .signal-metric-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  padding-top: 4px;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .signal-metric {
   min-width: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(32, 43, 35, 0.06);
 }
 
 .signal-metric span,
@@ -1244,28 +1381,24 @@ function applySensitivityRecommendation(point) {
 }
 
 .focus-symbol {
-  font-size: 2.7rem;
+  font-size: 3rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0;
-  margin-top: 2px;
 }
 
 .focus-name {
-  margin: 10px 0 0;
+  margin: 0;
   color: var(--muted);
   font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
-.focus-score-band {
-  margin-top: 14px;
-  border-radius: 999px;
-  background: rgba(22, 101, 52, 0.1);
-  color: var(--accent);
-  padding: 8px 12px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  width: fit-content;
+.signal-metric-section {
+  display: grid;
+  gap: 0;
+  padding-top: 2px;
 }
 
 .workspace-metric-grid,
@@ -1303,12 +1436,6 @@ function applySensitivityRecommendation(point) {
   margin-top: 18px;
 }
 
-.control-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  gap: 16px;
-}
-
 .control-section {
   display: grid;
   gap: 14px;
@@ -1319,10 +1446,19 @@ function applySensitivityRecommendation(point) {
   border: 1px solid rgba(32, 43, 35, 0.07);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.42);
+  width: 100%;
+}
+
+.control-card-compact {
+  padding: 16px 18px 18px;
 }
 
 .control-card-wide {
   padding-bottom: 18px;
+}
+
+.control-overview-card {
+  gap: 16px;
 }
 
 .control-section-head {
@@ -1338,33 +1474,42 @@ function applySensitivityRecommendation(point) {
 }
 
 .parameter-form {
-  margin-top: -2px;
-}
-
-.parameter-form :deep(.el-form-item) {
-  margin-bottom: 0;
+  margin-top: 2px;
 }
 
 .parameter-grid {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px 12px;
+}
+
+.parameter-grid-compact {
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px 14px;
 }
 
-.parameter-form :deep(.el-input-number),
-.parameter-form :deep(.el-select) {
-  width: 100%;
-}
-
-.config-definition-grid {
+.control-summary-strip {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px 28px;
-  margin-top: 4px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(32, 43, 35, 0.08);
 }
 
-.config-definition-grid .workspace-kv {
-  padding: 0;
+.control-summary-item {
+  min-width: 0;
+}
+
+.control-summary-item span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.control-summary-item strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 15px;
+  line-height: 1.3;
 }
 
 .workspace-callout {
@@ -1424,9 +1569,30 @@ function applySensitivityRecommendation(point) {
   margin-top: 6px;
 }
 
+.analysis-control-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+}
+
+.analysis-control-bar .history-tools,
+.analysis-control-bar .history-actions {
+  margin-top: 0;
+}
+
+.analysis-control-bar .history-actions {
+  margin-left: auto;
+}
+
 .analysis-stack {
   display: grid;
   gap: 26px;
+}
+
+.analysis-stack.compact-stack {
+  gap: 18px;
 }
 
 .analysis-surface,
@@ -1451,6 +1617,30 @@ function applySensitivityRecommendation(point) {
   margin: 0;
 }
 
+.analysis-subsection {
+  display: grid;
+  gap: 10px;
+}
+
+.analysis-subsection-title {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.monte-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 18px;
+  padding-bottom: 6px;
+}
+
+.monte-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
 .analysis-surface-sub {
   padding-top: 18px;
 }
@@ -1469,7 +1659,7 @@ function applySensitivityRecommendation(point) {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 110px auto;
   gap: 12px;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .preset-toolbar-wide {
@@ -1507,18 +1697,17 @@ function applySensitivityRecommendation(point) {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 10px;
   flex-wrap: wrap;
 }
 
 .preset-filter-chip {
-  border: 1px solid rgba(32, 43, 35, 0.08);
+  border: 1px solid rgba(32, 43, 35, 0.12);
   border-radius: 999px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.72);
   color: var(--muted);
   font: inherit;
   font-size: 12px;
-  font-weight: 600;
   padding: 5px 11px;
   white-space: nowrap;
   cursor: pointer;
@@ -1528,10 +1717,13 @@ function applySensitivityRecommendation(point) {
 }
 
 .preset-filter-chip.active {
-  box-shadow: 0 0 0 1px rgba(22, 101, 52, 0.12) inset;
+  border-color: rgba(22, 101, 52, 0.22);
+  background: rgba(22, 101, 52, 0.08);
+  color: var(--accent);
 }
 
 .preset-filter-chip.utility {
+  background: transparent;
   border-style: dashed;
 }
 
@@ -1545,8 +1737,7 @@ function applySensitivityRecommendation(point) {
   min-width: 16px;
   justify-content: center;
   align-items: center;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
   color: inherit;
   opacity: 0.85;
 }
@@ -1565,21 +1756,21 @@ function applySensitivityRecommendation(point) {
 
 .preset-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 12px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .preset-chip {
   min-width: 0;
-  padding: 16px 18px 14px;
+  padding: 14px 16px 12px;
   border-radius: 8px;
   border: 1px solid rgba(32, 43, 35, 0.08);
-  background: rgba(255, 255, 255, 0.46);
+  background: rgba(255, 255, 255, 0.52);
   text-align: left;
   cursor: pointer;
   display: grid;
-  gap: 8px;
+  gap: 6px;
   font: inherit;
   color: var(--text);
   align-content: start;
@@ -1597,16 +1788,27 @@ function applySensitivityRecommendation(point) {
   gap: 10px;
 }
 
+.preset-chip-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
 .preset-chip-title {
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: 700;
-  font-size: 1.05rem;
-  line-height: 1.35;
+  font-size: 1rem;
+  line-height: 1.3;
   word-break: break-word;
 }
 
 .preset-chip small {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .preset-chip-summary {
@@ -1615,15 +1817,17 @@ function applySensitivityRecommendation(point) {
 
 .preset-tag-badge {
   display: inline-flex;
+  flex-shrink: 0;
   width: fit-content;
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
-  border: 1px solid rgba(22, 101, 52, 0.14);
-  background: rgba(22, 101, 52, 0.06);
-  color: var(--accent);
+  border: 1px solid rgba(32, 43, 35, 0.1);
+  background: rgba(32, 43, 35, 0.04);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .preset-meta {
@@ -1633,23 +1837,23 @@ function applySensitivityRecommendation(point) {
 
 .preset-chip.active {
   border-color: rgba(22, 101, 52, 0.18);
-  box-shadow: inset 3px 0 0 rgba(22, 101, 52, 0.24);
+  box-shadow: 0 0 0 1px rgba(22, 101, 52, 0.08);
+  background: rgba(248, 252, 249, 0.92);
 }
 
 .preset-chip.pinned {
-  box-shadow:
-    inset 3px 0 0 rgba(22, 101, 52, 0.36),
-    0 0 0 1px rgba(22, 101, 52, 0.08);
+  border-color: rgba(22, 101, 52, 0.22);
 }
 
 .preset-chip-actions {
-  margin-top: 4px;
-  padding-top: 10px;
+  margin-top: 2px;
+  padding-top: 8px;
   border-top: 1px solid rgba(32, 43, 35, 0.08);
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .preset-action {
@@ -1658,10 +1862,15 @@ function applySensitivityRecommendation(point) {
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 400;
   padding: 0;
   cursor: pointer;
+  min-width: 0;
+}
+
+.preset-action:deep(.el-button) {
+  font-weight: 400;
 }
 
 .preset-action.active {
@@ -1672,9 +1881,63 @@ function applySensitivityRecommendation(point) {
   color: #a1532f;
 }
 
+.preset-action + .preset-action::before {
+  content: "·";
+  margin-right: 6px;
+  color: rgba(32, 43, 35, 0.22);
+}
+
 .preset-empty {
   padding: 12px 2px;
   white-space: normal;
+}
+
+.list-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.run-history-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 18px;
+  padding: 14px 16px;
+}
+
+.run-history-main,
+.run-history-metrics {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.run-history-time,
+.run-history-kpi {
+  font-size: 16px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.run-history-summary,
+.run-history-meta {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.run-history-metrics {
+  justify-items: end;
+  text-align: right;
+}
+
+.run-history-action {
+  display: flex;
+  align-items: center;
+}
+
+.run-history-row.selected {
+  background: rgba(22, 101, 52, 0.05);
+  box-shadow: inset 3px 0 0 rgba(22, 101, 52, 0.24);
 }
 
 @media (max-width: 1100px) {
@@ -1687,13 +1950,21 @@ function applySensitivityRecommendation(point) {
     grid-template-columns: 1fr;
   }
 
-  .control-grid {
-    grid-template-columns: 1fr;
+  .parameter-grid,
+  .parameter-grid-compact,
+  .control-summary-strip,
+  .monte-summary-grid,
+  .monte-chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .parameter-grid,
-  .config-definition-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .run-history-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .run-history-action {
+    grid-column: 2;
+    grid-row: 1 / span 2;
   }
 }
 
@@ -1705,8 +1976,21 @@ function applySensitivityRecommendation(point) {
 
   .workspace-metric-grid,
   .workspace-kv-grid,
-  .signal-metric-list {
+  .signal-metric-list,
+  .monte-summary-grid,
+  .monte-chart-grid {
     grid-template-columns: 1fr;
+  }
+
+  .signal-focus-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .signal-score-card {
+    width: 100%;
+    text-align: left;
   }
 
   .parameter-grid,
@@ -1717,6 +2001,21 @@ function applySensitivityRecommendation(point) {
 
   .control-section-head {
     align-items: flex-start;
+  }
+
+  .run-history-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .run-history-metrics {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .run-history-action {
+    grid-column: auto;
+    grid-row: auto;
   }
 }
 </style>

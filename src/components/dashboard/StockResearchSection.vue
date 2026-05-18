@@ -698,29 +698,10 @@ function sectionTip(text) {
 }
 
 :deep(.compact-data-table.el-table) {
-  --el-table-border-color: var(--line);
   --el-table-header-bg-color: rgba(243, 244, 233, 0.96);
   --el-table-row-hover-bg-color: rgba(243, 244, 233, 0.32);
-}
-
-:deep(.compact-data-table .el-table__inner-wrapper::before) {
-  display: none;
-}
-
-:deep(.compact-data-table .el-table__cell) {
-  padding: 12px 10px;
-  font-size: 14px;
-  vertical-align: top;
-}
-
-:deep(.compact-data-table .cell) {
-  word-break: break-word;
-}
-
-:deep(.compact-data-table th.el-table__cell) {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  --el-table-text-color: var(--text);
+  --el-table-header-text-color: var(--muted);
 }
 
 .secondary-table {
